@@ -26,7 +26,8 @@ void drawTitle(const Ctx& ctx) {
     ui::text(ctx.title, letter, x, 44.0f + bob, size, i < 2 ? ui::kGold : ui::kText);
     x += ui::textWidth(ctx.title, letter, size);
   }
-  ui::textCentered(ctx.ui, tr(Str::Subtitle), kViewW * 0.5f, 168.0f, 28.0f, ui::kMuted);
+  ui::textCentered(ctx.ui, tr(Str::Subtitle), kViewW * 0.5f + 2.0f, 170.0f, 28.0f, Fade(BLACK, 0.6f));
+  ui::textCentered(ctx.ui, tr(Str::Subtitle), kViewW * 0.5f, 168.0f, 28.0f, ui::kText);
 }
 
 // Miniatura del tablero vista desde arriba.

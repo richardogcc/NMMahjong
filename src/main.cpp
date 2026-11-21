@@ -86,7 +86,7 @@ int main() {
 
   const std::string assets = assetDir();
   Background background;
-  background.init();
+  background.init(assets);
   TileAtlas atlas;
 
   Ctx ctx;

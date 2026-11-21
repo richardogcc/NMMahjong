@@ -14,8 +14,8 @@ avanza por ocho niveles con su propio paisaje y su propia música.
   anterior.
 - **Siempre tiene solución.** Las fichas se reparten de forma que el tablero
   pueda despejarse entero.
-- **Fondos animados** distintos en cada nivel: auroras, agua, cielos
-  estrellados y atardeceres.
+- **Paisajes reales animados**: cada nivel tiene su fotografía —lagos, dunas,
+  playas, auroras, templos— con movimiento lento, bruma y destellos en el agua.
 - **Música ambiental** que nunca se repite igual y cambia de carácter según el
   nivel.
 - **Efectos**: destellos al emparejar, combos si encadenas parejas con
@@ -65,8 +65,8 @@ Creado por **Richardo G. Cibea M.** © 2026. Todos los derechos reservados.
 
 NM Mahjong es software propietario: puedes descargarlo y jugar, pero no
 copiarlo, modificarlo ni redistribuirlo. Las condiciones completas están en
-[LICENSE](LICENSE) y los componentes de terceros que utiliza, en
-[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+[LICENSE](LICENSE) y los componentes de terceros que utiliza —incluidos los autores de las
+fotografías de fondo—, en [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ---
 
@@ -82,8 +82,8 @@ way through eight levels, each with its own scenery and music.
 - **Eight levels** with different shapes, from the small *Garden* to the 144
   tiles of *Turtle* and *Temple*. Clearing a level unlocks the next one.
 - **Always solvable.** Tiles are dealt so the whole board can be cleared.
-- **Animated backgrounds** for every level: auroras, water, starry skies and
-  sunsets.
+- **Real, animated scenery**: every level has its own photograph (lakes,
+  dunes, beaches, auroras, temples) with slow motion, mist and water sparkles.
 - **Ambient music** that never plays the same way twice and changes mood with
   the level.
 - **Effects**: sparkles on every match, combos when you chain pairs quickly
@@ -125,5 +125,5 @@ Created by **Richardo G. Cibea M.** © 2026. All rights reserved.
 
 NM Mahjong is proprietary software: you may download and play it, but not copy,
 modify or redistribute it. Full terms are in [LICENSE](LICENSE); the
-third-party components it uses are listed in
-[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+third-party components it uses, including the background photographers, are
+credited in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

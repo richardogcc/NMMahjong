@@ -15,6 +15,9 @@ uniform vec3 uA;
 uniform vec3 uB;
 uniform vec3 uC;
 uniform int uMode;
+uniform int uPhoto;
+uniform vec2 uTexSize;
+uniform sampler2D texture0;
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 
@@ -35,10 +38,7 @@ float fbm(vec2 p) {
   return v;
 }
 
-void main() {
-  vec2 uv = gl_FragCoord.xy / uRes;
-  vec2 p = (gl_FragCoord.xy - 0.5 * uRes) / uRes.y;
-  float t = uTime;
+vec3 generated(vec2 uv, vec2 p, float t) {
   vec3 col;
 
   if (uMode == 0) {
@@ -86,6 +86,62 @@ void main() {
       col = mix(col, mix(uB, vec3(1.0), 0.35), smoothstep(0.5, 0.85, mist) * mask * 0.35);
     }
   }
+  return col;
+}
+
+// Fotografía con movimiento lento de cámara y un efecto vivo según el tema.
+vec3 photograph(vec2 uv, vec2 p, float t) {
+  vec2 top = vec2(uv.x, 1.0 - uv.y);  // origen arriba a la izquierda, como la imagen
+  float screen = uRes.x / uRes.y, image = uTexSize.x / uTexSize.y;
+  vec2 fit = screen > image ? vec2(1.0, image / screen) : vec2(screen / image, 1.0);
+  float zoom = 1.09 + 0.05 * sin(t * 0.045);
+  vec2 pan = vec2(sin(t * 0.031), cos(t * 0.023)) * 0.016;
+  vec2 st = (top - 0.5) * fit / zoom + 0.5 + pan;
+
+  float low = smoothstep(0.5, 1.0, top.y);  // mitad inferior: agua, arena, hierba
+  if (uMode == 1) {
+    float wob = noise(vec2(top.x * 6.0, top.y * 30.0 - t * 0.5));
+    st += low * vec2(sin(top.y * 110.0 + t * 1.5 + wob * 6.0) * 0.0022, cos(top.x * 46.0 + t * 1.1) * 0.0012);
+  } else if (uMode == 3) {
+    st.x += (noise(vec2(top.y * 9.0, t * 0.35)) - 0.5) * 0.0045 * low;  // el viento mece el suelo
+  }
+  vec3 col = texture(texture0, st).rgb;
+
+  if (uMode == 0) {
+    // Aurora: el cielo respira con cortinas de luz que se desplazan.
+    float sky = smoothstep(0.8, 0.15, top.y);
+    float veil = fbm(vec2(top.x * 3.0 + t * 0.05, top.y * 1.4 - t * 0.07));
+    float lum = dot(col, vec3(0.3, 0.59, 0.11));
+    col *= 1.0 + sky * (veil - 0.45) * 1.1 * smoothstep(0.08, 0.5, lum);
+  } else if (uMode == 1) {
+    // Destellos sueltos de sol sobre el agua.
+    float grain = noise(vec2(top.x * 150.0 + t * 0.35, top.y * 330.0 - t * 0.9));
+    float glint = pow(grain, 10.0) * (0.5 + 0.5 * sin(t * 2.2 + top.x * 37.0 + top.y * 91.0));
+    col += uC * glint * low * 0.9 * (0.3 + dot(col, vec3(0.33)));
+  } else {
+    // Bruma o nubes bajas que cruzan despacio.
+    float mist = fbm(vec2(p.x * 1.4 + t * 0.028, p.y * 3.2 - t * 0.006));
+    col = mix(col, uC, smoothstep(0.48, 0.9, mist) * 0.24);
+  }
+  if (uMode == 0 || uMode == 2) {
+    vec2 g = gl_FragCoord.xy / (uRes.y / 46.0);
+    vec2 cell = floor(g);
+    float seed = hash(cell);
+    if (seed > 0.9 && top.y < 0.55) {
+      float d = length(fract(g) - (vec2(hash(cell + 3.1), hash(cell + 7.7)) * 0.7 + 0.15));
+      col += vec3(1.0, 0.97, 0.9) * smoothstep(0.07, 0.0, d) * (0.5 + 0.5 * sin(t * (1.0 + seed * 3.0) + seed * 40.0)) * 0.7;
+    }
+  }
+  // Las fichas tienen que leerse bien: algo menos de color y de luz.
+  col = mix(col, vec3(dot(col, vec3(0.3, 0.59, 0.11))), 0.14) * 0.74;
+  return col;
+}
+
+void main() {
+  vec2 uv = gl_FragCoord.xy / uRes;
+  vec2 p = (gl_FragCoord.xy - 0.5 * uRes) / uRes.y;
+  float t = uTime;
+  vec3 col = uPhoto == 1 ? photograph(uv, p, t) : generated(uv, p, t);
 
   float vig = smoothstep(1.25, 0.25, length(p * vec2(0.85, 1.1)));
   col *= mix(0.5, 1.0, vig);
@@ -98,7 +154,11 @@ float frand() { return static_cast<float>(GetRandomValue(0, 10000)) / 10000.0f; 
 
 }  // namespace
 
-void Background::init() {
+void Background::init(const std::string& assetDir) {
+  dir_ = assetDir + "backgrounds/";
+  Image white = GenImageColor(4, 4, WHITE);
+  blank_ = LoadTextureFromImage(white);
+  UnloadImage(white);
   shader_ = LoadShaderFromMemory(nullptr, kFragment);
   locTime_ = GetShaderLocation(shader_, "uTime");
   locRes_ = GetShaderLocation(shader_, "uRes");
@@ -106,6 +166,8 @@ void Background::init() {
   locB_ = GetShaderLocation(shader_, "uB");
   locC_ = GetShaderLocation(shader_, "uC");
   locMode_ = GetShaderLocation(shader_, "uMode");
+  locPhoto_ = GetShaderLocation(shader_, "uPhoto");
+  locTexSize_ = GetShaderLocation(shader_, "uTexSize");
   for (int i = 0; i < 46; ++i)
     motes_.push_back({{frand(), frand()},
                       {0.012f + frand() * 0.03f, 0.01f + frand() * 0.028f},
@@ -114,7 +176,28 @@ void Background::init() {
                       20.0f + frand() * 70.0f});
 }
 
-void Background::shutdown() { UnloadShader(shader_); }
+void Background::shutdown() {
+  for (auto& [name, texture] : photos_)
+    if (texture.id != 0) UnloadTexture(texture);
+  photos_.clear();
+  UnloadTexture(blank_);
+  UnloadShader(shader_);
+}
+
+const Texture2D& Background::photo(const char* name) {
+  const auto found = photos_.find(name);
+  if (found != photos_.end()) return found->second;
+  Texture2D texture = {};
+  const std::string path = dir_ + name + ".jpg";
+  if (FileExists(path.c_str())) {
+    texture = LoadTexture(path.c_str());
+    if (texture.id != 0) {
+      SetTextureFilter(texture, TEXTURE_FILTER_BILINEAR);
+      SetTextureWrap(texture, TEXTURE_WRAP_CLAMP);
+    }
+  }
+  return photos_[name] = texture;  // un id 0 recuerda que no está y no se reintenta
+}
 
 void Background::draw(const Theme& theme, double time, float dt) {
   const float w = static_cast<float>(GetScreenWidth());
@@ -128,8 +211,15 @@ void Background::draw(const Theme& theme, double time, float dt) {
   SetShaderValue(shader_, locB_, &theme.b, SHADER_UNIFORM_VEC3);
   SetShaderValue(shader_, locC_, &theme.c, SHADER_UNIFORM_VEC3);
   SetShaderValue(shader_, locMode_, &theme.mode, SHADER_UNIFORM_INT);
+  const Texture2D& image = photo(theme.photo);
+  const int hasPhoto = image.id != 0 ? 1 : 0;
+  const Texture2D& bound = hasPhoto ? image : blank_;
+  const float texSize[2] = {static_cast<float>(bound.width), static_cast<float>(bound.height)};
+  SetShaderValue(shader_, locPhoto_, &hasPhoto, SHADER_UNIFORM_INT);
+  SetShaderValue(shader_, locTexSize_, texSize, SHADER_UNIFORM_VEC2);
   BeginShaderMode(shader_);
-  DrawRectangle(0, 0, static_cast<int>(w) + 1, static_cast<int>(h) + 1, WHITE);
+  DrawTexturePro(bound, {0.0f, 0.0f, texSize[0], texSize[1]}, {0.0f, 0.0f, w + 1.0f, h + 1.0f}, {0.0f, 0.0f},
+                 0.0f, WHITE);
   EndShaderMode();
 
   // Motas: pétalos, luciérnagas o copos, según el color del tema.

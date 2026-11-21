@@ -21,6 +21,8 @@ FetchContent_Declare(raylib
   URL https://github.com/raysan5/raylib/archive/refs/tags/5.5.tar.gz
   DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
 FetchContent_MakeAvailable(raylib)
+# Los fondos son fotografías en JPG, formato que raylib trae desactivado.
+target_compile_definitions(raylib PRIVATE SUPPORT_FILEFORMAT_JPG=1)
 
 # --- Lógica pura (sin dependencias gráficas) ------------------------------
 add_library(nmcore STATIC
