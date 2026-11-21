@@ -158,7 +158,8 @@ int main() {
   ctx.atlas = &atlas;
   Updater updater;
   ctx.updater = &updater;
-  if (!capture.active()) updater.check();
+  // En las capturas no se consulta la red, salvo en el ensayo con NM_UPDATE_FAKE_DIR.
+  if (!capture.active() || std::getenv("NM_UPDATE_FAKE_DIR")) updater.check();
 
   auto buildTiles = [&]() {
     TileStyle style;

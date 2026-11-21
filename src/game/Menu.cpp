@@ -69,6 +69,38 @@ void cardFrame(Rectangle& card, bool over, bool focused, bool golden) {
   else if (golden) DrawRectangleRoundedLinesEx(card, 0.12f, 12, 2.5f, Fade(ui::kGold, 0.4f));
 }
 
+// Aviso de versión nueva, arriba a la derecha.
+void drawUpdate(Ctx& ctx) {
+  using State = Updater::State;
+  const State state = ctx.updater->state();
+  if (state == State::Idle || state == State::Checking || state == State::UpToDate) return;
+
+  const Rectangle box = {1178.0f, 34.0f, 327.0f, 112.0f};
+  ui::panel(box, 0.8f);
+  const float cx = box.x + box.width * 0.5f;
+  const Rectangle action = {box.x + 46.0f, box.y + 54.0f, box.width - 92.0f, 44.0f};
+  if (state == State::Available || state == State::Manual) {
+    ui::textCentered(ctx.ui, TextFormat(tr(Str::UpdateAvailable), ctx.updater->version().c_str()), cx,
+                     box.y + 16.0f, 21.0f, ui::kGold);
+    if (state == State::Available) {
+      if (ui::button(ctx, action, tr(Str::UpdateNow), true, 21.0f)) ctx.updater->install();
+    } else if (ui::button(ctx, action, tr(Str::UpdateOpenPage), true, 21.0f)) {
+      OpenURL(ctx.updater->pageUrl().c_str());
+    }
+  } else if (state == State::Failed) {
+    ui::textCentered(ctx.ui, tr(Str::UpdateFailed), cx, box.y + 16.0f, 21.0f, ui::kText);
+    if (ui::button(ctx, action, tr(Str::UpdateOpenPage), true, 21.0f)) OpenURL(ctx.updater->pageUrl().c_str());
+  } else {
+    const bool restarting = state == State::Ready;
+    ui::textCentered(ctx.ui, tr(restarting ? Str::UpdateRestarting : Str::UpdateDownloading), cx,
+                     box.y + 22.0f, 21.0f, ui::kText);
+    // Barra que va y viene mientras se trabaja.
+    const float k = 0.5f + 0.5f * std::sin(static_cast<float>(ctx.time) * 3.0f);
+    DrawRectangleRounded({box.x + 40.0f, box.y + 72.0f, box.width - 80.0f, 8.0f}, 1.0f, 6, Fade(WHITE, 0.15f));
+    DrawRectangleRounded({box.x + 40.0f + k * (box.width - 160.0f), box.y + 72.0f, 80.0f, 8.0f}, 1.0f, 6, ui::kGold);
+  }
+}
+
 }  // namespace
 
 bool Menu::drawLevelCard(const Ctx& ctx, int index, Rectangle card, bool unlocked, bool focused) const {
@@ -153,6 +185,7 @@ MenuResult Menu::draw(Ctx& ctx) {
     if (!save.tutorialDone) panel_ = Panel::Tutorial;  // la primera vez se explica el juego
   }
   drawTitle(ctx);
+  if (panel_ == Panel::None) drawUpdate(ctx);
 
   // Teclado y mando: las flechas recorren las tarjetas y Enter abre.
   const auto& layouts = allLayouts();
