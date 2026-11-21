@@ -234,10 +234,10 @@ const Texture2D& Background::photo(const char* name) {
   return photos_[name] = texture;  // un id 0 recuerda que no está y no se reintenta
 }
 
-void Background::draw(const Theme& theme, double time, float dt) {
+void Background::draw(const Theme& theme, double time, float dt, bool animated) {
   const float w = static_cast<float>(GetScreenWidth());
   const float h = static_cast<float>(GetScreenHeight());
-  const float t = static_cast<float>(time);
+  const float t = animated ? static_cast<float>(time) : 0.0f;
   const float res[2] = {static_cast<float>(GetRenderWidth()), static_cast<float>(GetRenderHeight())};
 
   SetShaderValue(shader_, locTime_, &t, SHADER_UNIFORM_FLOAT);
@@ -257,6 +257,8 @@ void Background::draw(const Theme& theme, double time, float dt) {
   DrawTexturePro(bound, {0.0f, 0.0f, texSize[0], texSize[1]}, {0.0f, 0.0f, w + 1.0f, h + 1.0f}, {0.0f, 0.0f},
                  0.0f, WHITE);
   EndShaderMode();
+
+  if (!animated) return;
 
   // Lo que flota por delante: pétalos, hojas, luciérnagas o polvo de luz.
   const float unit = h / 900.0f;

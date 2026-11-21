@@ -36,7 +36,7 @@ const Theme& menuTheme() { return kMenu; }
 
 const Theme& levelTheme(int levelIndex) {
   const int count = static_cast<int>(std::size(kLevels));
-  return kLevels[std::clamp(levelIndex, 0, count - 1) % count];
+  return kLevels[std::max(levelIndex, 0) % count];
 }
 
 }  // namespace nm

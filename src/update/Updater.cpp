@@ -22,7 +22,7 @@ const std::string kRepo = NM_UPDATE_REPO;
 const char* const kAssetSuffix = "-Windows-x64.zip";
 const char* const kCurl = "curl.exe";
 #else
-const char* const kAssetSuffix = "-macOS-arm64.dmg";
+const char* const kAssetSuffix = "-macOS-universal.dmg";
 const char* const kCurl = "/usr/bin/curl";
 #endif
 

@@ -2,6 +2,7 @@
 #include "audio/Audio.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstdint>
 #include <string>
@@ -74,6 +75,27 @@ void Audio::init(const std::string& assetDir) {
         return bell(t, 880.0f, 0.2f) * 0.3f + bell(t - 0.09f, 1320.0f, 0.26f) * 0.24f;
       }));
 
+  // Cuerda pulsada (Karplus-Strong) para las notas de las parejas.
+  {
+    const int period = static_cast<int>(kRate / 293.66f);  // re
+    std::vector<float> ring(period);
+    std::uint32_t seed = 12345u;
+    float smooth = 0.0f;
+    for (float& v : ring) {
+      smooth += (noise(seed) - smooth) * 0.55f;
+      v = smooth;
+    }
+    int pos = 0;
+    float last = 0.0f;
+    pluck_ = synth(1.6f, [&](float) {
+      const float y = ring[pos];
+      ring[pos] = 0.5f * (y + last) * 0.9965f;
+      last = y;
+      pos = (pos + 1) % period;
+      return y * 0.75f;
+    });
+  }
+
   // Piezas grabadas, en orden alfabético.
   const std::string dir = assetDir + "music";
   if (DirectoryExists(dir.c_str())) {
@@ -86,6 +108,11 @@ void Audio::init(const std::string& assetDir) {
       if (track.frameCount == 0) continue;
       track.looping = true;
       tracks_.push_back(track);
+      // «03-liushui.ogg» -> «Liushui»
+      std::string name = GetFileNameWithoutExt(path.c_str());
+      if (const auto dash = name.find('-'); dash != std::string::npos) name = name.substr(dash + 1);
+      if (!name.empty()) name[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(name[0])));
+      trackNames_.push_back(name);
     }
   }
 
@@ -101,7 +128,8 @@ void Audio::init(const std::string& assetDir) {
 
 void Audio::update(float dt) {
   if (!ready_ || tracks_.empty()) return;
-  const int wanted = wanted_ % static_cast<int>(tracks_.size());
+  const int count = static_cast<int>(tracks_.size());
+  const int wanted = (fixedTrack_ >= 0 ? fixedTrack_ : wanted_) % count;
   if (current_ != wanted) {
     // Fundido de salida, cambio de pieza y fundido de entrada.
     fade_ = std::max(0.0f, fade_ - dt / 1.2f);
@@ -123,6 +151,7 @@ void Audio::shutdown() {
     StopAudioStream(stream_);
     UnloadAudioStream(stream_);
     for (Sound& sound : sounds_) UnloadSound(sound);
+    UnloadSound(pluck_);
     for (Music& track : tracks_) UnloadMusicStream(track);
     tracks_.clear();
   }
@@ -136,6 +165,20 @@ void Audio::play(Sfx sfx, float pitch) {
   SetSoundPitch(sound, pitch);
   SetSoundVolume(sound, sfxVolume_);
   PlaySound(sound);
+}
+
+void Audio::playNote(int degree) {
+  if (!ready_ || sfxVolume_ <= 0.0f) return;
+  static const int kScale[5] = {0, 2, 4, 7, 9};  // pentatónica mayor
+  const int d = std::clamp(degree, 0, 14);
+  const int semitones = kScale[d % 5] + 12 * (d / 5);
+  SetSoundPitch(pluck_, std::pow(2.0f, semitones / 12.0f));
+  SetSoundVolume(pluck_, sfxVolume_ * 0.8f);
+  PlaySound(pluck_);
+}
+
+const char* Audio::trackName(int index) const {
+  return index >= 0 && index < static_cast<int>(trackNames_.size()) ? trackNames_[index].c_str() : "";
 }
 
 void Audio::setMusicVolume(float volume) {

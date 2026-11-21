@@ -14,14 +14,24 @@ constexpr float kAspect = kFaceH / kFaceW;
 constexpr float kDepthRatio = kDepth / kFaceW;
 }  // namespace tile
 
+enum class TileSet { Modern = 0, Classic = 1, Contrast = 2 };
+
+// Lo necesario para dibujar las caras de un juego de fichas.
+struct TileStyle {
+  TileSet set = TileSet::Modern;
+  const Font* font = nullptr;     // números y letras
+  const Font* cjk = nullptr;      // caracteres chinos, para el juego clásico
+  const char* westLetter = "O";   // inicial de «oeste» en el idioma actual
+};
+
 // Dibuja el símbolo de una cara dentro del rectángulo de 160 x 210 que empieza en `origin`.
-void drawTileFace(int face, Vector2 origin, const Font& font, const char* westLetter);
+void drawTileFace(int face, Vector2 origin, const TileStyle& style);
 
 // Todas las fichas se dibujan una sola vez en una textura y luego se pintan
 // como imágenes: así escalan y giran con suavidad.
 class TileAtlas {
  public:
-  void build(const Font& font, const char* westLetter);
+  void build(const TileStyle& style);
   void unload();
 
   // `center` es el centro de la cara; `faceWidth` su ancho en pantalla.

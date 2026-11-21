@@ -35,7 +35,7 @@ void drawBody(Vector2 o) {
 
 }  // namespace
 
-void TileAtlas::build(const Font& font, const char* westLetter) {
+void TileAtlas::build(const TileStyle& style) {
   unload();
   const int width = static_cast<int>(kCellW * kCols * kBake);
   const int height = static_cast<int>(kCellH * kRows * kBake);
@@ -49,7 +49,7 @@ void TileAtlas::build(const Font& font, const char* westLetter) {
   for (int face = 0; face < kFaceCount; ++face) {
     const Vector2 origin = {(face % kCols) * kCellW + kPad, (face / kCols) * kCellH + kPad};
     drawBody(origin);
-    drawTileFace(face, origin, font, westLetter);
+    drawTileFace(face, origin, style);
   }
   EndMode2D();
   EndTextureMode();

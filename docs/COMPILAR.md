@@ -2,7 +2,7 @@
 
 Todo se compila en local; no hay ningún servicio de integración continua.
 
-## En un Mac (Apple Silicon)
+## En un Mac
 
 Clona el repositorio y lanza el guion de preparación. Comprueba que el equipo
 tiene lo necesario, instala con Homebrew lo que falte, compila y pasa las
@@ -20,7 +20,8 @@ cd NMMahjong
 scripts/setup.sh --install
 ```
 
-Al terminar, el juego está en `build/mac/NMMahjong.app`:
+Al terminar, el juego está en `build/mac/NMMahjong.app`, como binario
+universal (Apple Silicon e Intel):
 
 ```bash
 open build/mac/NMMahjong.app
@@ -97,6 +98,7 @@ cmake --build build/windows
 
 | Orden | Qué hace |
 |---|---|
+| `scripts/test-windows.sh` | Arranca el `.exe` con Wine dentro de Docker y deja capturas en `dist/windows-test/`. |
 | `scripts/package.sh` | Compila ambas plataformas y deja el `.dmg` y el `.zip` en `dist/`. |
 | `scripts/release.sh --draft` | Publica la versión en GitHub como borrador. |
 | `scripts/release.sh` | Publica la versión en GitHub. |

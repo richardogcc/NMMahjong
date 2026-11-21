@@ -29,7 +29,8 @@ class Background {
  public:
   void init(const std::string& assetDir);
   void shutdown();
-  void draw(const Theme& theme, double time, float dt);
+  // Con `animated` en false la foto queda quieta y sin motas.
+  void draw(const Theme& theme, double time, float dt, bool animated = true);
 
  private:
   struct Mote {

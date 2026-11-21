@@ -33,6 +33,7 @@ gh release create "$TAG" \
   --target "$(git rev-parse HEAD)" \
   ${DRAFT[@]+"${DRAFT[@]}"} \
   "dist/NMMahjong-$VERSION-Windows-x64.zip#Windows (64 bits) — NMMahjong-$VERSION-Windows-x64.zip" \
-  "dist/NMMahjong-$VERSION-macOS-arm64.dmg#macOS (Apple Silicon) — NMMahjong-$VERSION-macOS-arm64.dmg"
+  "dist/NMMahjong-$VERSION-macOS-universal.dmg#macOS (Apple Silicon e Intel) — NMMahjong-$VERSION-macOS-universal.dmg" \
+  "dist/NMMahjong-$VERSION-macOS-arm64.dmg#macOS — copia para actualizar desde la 0.4.0 o anterior"
 
 echo "Publicada: $(gh release view "$TAG" --json url --jq .url)"

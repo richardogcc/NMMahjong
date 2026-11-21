@@ -51,6 +51,15 @@ GameAction Game::draw(Ctx& ctx) {
   } else if (state_ == State::Paused) {
     const GameAction a = drawPaused(ctx);
     if (a != GameAction::None) action = a;
+  } else if (state_ == State::TimeUp) {
+    const GameAction a = drawTimeUp(ctx);
+    if (a != GameAction::None) action = a;
+  }
+  drawToast(ctx);
+  // Abandonar una partida a medias corta la racha de victorias.
+  if (action == GameAction::Restart && !finished()) {
+    ctx.save->winStreak = 0;
+    ctx.save->store();
   }
   return action;
 }
@@ -77,8 +86,9 @@ void Game::drawBoard(const Ctx& ctx) const {
     DrawRectangleRounded({face.x + shadow, face.y + shadow, tileW_, tileH_}, kRound, 6, Fade(BLACK, 0.2f * e));
 
     const bool usable = board_.isFree(i);
-    const unsigned char g = usable ? 255 : 214;
-    ctx.atlas->draw(t.face, c, width, 0.0f, {g, g, static_cast<unsigned char>(usable ? 255 : 224),
+    const bool dimmed = !usable && ctx.save->highlightFree;
+    const unsigned char g = dimmed ? 214 : 255;
+    ctx.atlas->draw(t.face, c, width, 0.0f, {g, g, static_cast<unsigned char>(dimmed ? 224 : 255),
                                              static_cast<unsigned char>(255 * std::min(1.0f, e * 1.4f))});
 
     if (i == selected_) {
@@ -88,7 +98,7 @@ void Game::drawBoard(const Ctx& ctx) const {
       DrawRectangleRounded(face, kRound, 8, Fade({120, 230, 255, 255}, 0.16f + 0.2f * pulse));
       DrawRectangleRoundedLinesEx(face, kRound, 8, 4.0f + 2.0f * pulse, Fade({120, 230, 255, 255}, 0.9f));
     } else if (i == hover_ && usable) {
-      DrawRectangleRoundedLinesEx(face, kRound, 8, 2.5f, Fade(WHITE, 0.75f));
+      DrawRectangleRoundedLinesEx(face, kRound, 8, cursorActive_ ? 5.0f : 2.5f, Fade(WHITE, cursorActive_ ? 0.95f : 0.75f));
     }
   }
 }
@@ -117,15 +127,28 @@ GameAction Game::drawHud(Ctx& ctx) {
   if (ui::button(ctx, {20.0f, 14.0f, 128.0f, 48.0f}, tr(Str::Menu))) action = GameAction::Menu;
   ui::text(ctx.title, title(), 172.0f, 19.0f, 38.0f, ui::kText);
 
-  const int seconds = static_cast<int>(elapsed_);
   stat(ctx, tr(Str::Pairs), TextFormat("%d", board_.remaining() / 2), 560.0f);
   stat(ctx, tr(Str::Moves), TextFormat("%d", moves_), 700.0f);
-  stat(ctx, tr(Str::Time), TextFormat("%02d:%02d", seconds / 60, seconds % 60), 840.0f);
-  stat(ctx, tr(Str::Score), TextFormat("%d", score_), 980.0f);
+  if (style_ == PlayStyle::Zen) {
+    stat(ctx, tr(Str::OptStyle), tr(Str::Zen), 910.0f);
+  } else {
+    // En contrarreloj el reloj va hacia atrás y avisa en rojo al final.
+    const bool timed = style_ == PlayStyle::Timed;
+    const int seconds = static_cast<int>(timed ? std::ceil(timeLeft_) : elapsed_);
+    ui::textCentered(ctx.ui, tr(Str::Time), 840.0f, 10.0f, 16.0f, ui::kMuted);
+    ui::textCentered(ctx.ui, TextFormat("%02d:%02d", seconds / 60, seconds % 60), 840.0f, 30.0f, 30.0f,
+                     timed && timeLeft_ < 20.0f ? Color{255, 110, 110, 255} : ui::kText);
+    stat(ctx, tr(Str::Score), TextFormat("%d", score_), 980.0f);
+  }
 
-  if (ui::button(ctx, {1098.0f, 14.0f, 150.0f, 48.0f}, tr(Str::Hint), playing)) useHint(ctx);
+  // Con dificultad normal o difícil las ayudas son limitadas y se ve cuántas quedan.
+  const char* hintLabel = hintLimit_ < 0 ? tr(Str::Hint) : TextFormat("%s (%d)", tr(Str::Hint), hintsLeft());
+  if (ui::button(ctx, {1098.0f, 14.0f, 150.0f, 48.0f}, hintLabel, playing && hintsLeft() != 0)) useHint(ctx);
   if (ui::button(ctx, {1260.0f, 14.0f, 156.0f, 48.0f}, tr(Str::Undo), playing && board_.canUndo())) useUndo(ctx);
-  if (ui::button(ctx, {1428.0f, 14.0f, 152.0f, 48.0f}, tr(Str::Shuffle), playing)) useShuffle(ctx);
+  const char* shuffleLabel =
+      shuffleLimit_ < 0 ? tr(Str::Shuffle) : TextFormat("%s (%d)", tr(Str::Shuffle), shufflesLeft());
+  if (ui::button(ctx, {1428.0f, 14.0f, 152.0f, 48.0f}, shuffleLabel, playing && shufflesLeft() != 0))
+    useShuffle(ctx);
 
   if (combo_ >= 2 && playing) {
     const float k = std::clamp(comboTimer_ / 5.0f, 0.0f, 1.0f);
@@ -138,8 +161,9 @@ GameAction Game::drawHud(Ctx& ctx) {
 
 GameAction Game::drawWon(Ctx& ctx) {
   GameAction action = GameAction::None;
-  // En modo aleatorio siempre hay «siguiente»: otro tablero nuevo.
-  const bool last = !random_ && level_ + 1 >= static_cast<int>(allLayouts().size());
+  // En aleatorio siempre hay «siguiente» (otro tablero); el reto diario es uno al día.
+  const bool last = kind_ == BoardKind::Daily ||
+                    (kind_ == BoardKind::Level && level_ + 1 >= static_cast<int>(allLayouts().size()));
   dim();
   particles_.draw();  // el confeti queda por encima del velo
   ui::panel({470.0f, 200.0f, 660.0f, 470.0f}, 0.9f);
@@ -153,11 +177,15 @@ GameAction Game::drawWon(Ctx& ctx) {
   }
 
   const int seconds = static_cast<int>(elapsed_);
-  ui::textCentered(ctx.ui,
-                   TextFormat("%s %02d:%02d     %s %d", tr(Str::Time), seconds / 60, seconds % 60,
-                              tr(Str::Score), score_),
-                   kViewW * 0.5f, 468.0f, 28.0f, ui::kText);
-  if (last) ui::textCentered(ctx.ui, tr(Str::GameComplete), kViewW * 0.5f, 516.0f, 22.0f, ui::kMuted);
+  if (style_ != PlayStyle::Zen)
+    ui::textCentered(ctx.ui,
+                     TextFormat("%s %02d:%02d     %s %d", tr(Str::Time), seconds / 60, seconds % 60,
+                                tr(Str::Score), score_),
+                     kViewW * 0.5f, 468.0f, 28.0f, ui::kText);
+  if (kind_ == BoardKind::Daily)
+    ui::textCentered(ctx.ui, TextFormat(tr(Str::Streak), ctx.save->dailyStreak), kViewW * 0.5f, 516.0f, 24.0f, ui::kGold);
+  else if (last)
+    ui::textCentered(ctx.ui, tr(Str::GameComplete), kViewW * 0.5f, 516.0f, 22.0f, ui::kMuted);
 
   const int count = last ? 2 : 3;
   if (ui::button(ctx, rowButton(0, count, 580.0f), tr(Str::Menu))) action = GameAction::Menu;
@@ -175,7 +203,7 @@ GameAction Game::drawStuck(Ctx& ctx) {
                    ui::kMuted);
 
   const float y = 486.0f;
-  if (ui::button(ctx, rowButton(0, 4, y), tr(Str::Shuffle), !deadEnd_)) useShuffle(ctx);
+  if (ui::button(ctx, rowButton(0, 4, y), tr(Str::Shuffle), !deadEnd_ && shufflesLeft() != 0)) useShuffle(ctx);
   if (ui::button(ctx, rowButton(1, 4, y), tr(Str::Undo), board_.canUndo())) useUndo(ctx);
   if (ui::button(ctx, rowButton(2, 4, y), tr(Str::Restart))) action = GameAction::Restart;
   if (ui::button(ctx, rowButton(3, 4, y), tr(Str::Menu))) action = GameAction::Menu;
@@ -196,8 +224,32 @@ GameAction Game::drawPaused(Ctx& ctx) {
   return action;
 }
 
+GameAction Game::drawTimeUp(Ctx& ctx) {
+  GameAction action = GameAction::None;
+  dim();
+  ui::panel({470.0f, 280.0f, 660.0f, 300.0f}, 0.9f);
+  ui::textCentered(ctx.title, tr(Str::TimeUp), kViewW * 0.5f, 312.0f, 56.0f, {255, 130, 130, 255});
+  ui::textCentered(ctx.ui, tr(Str::TimeUpBody), kViewW * 0.5f, 400.0f, 24.0f, ui::kMuted);
+  if (ui::button(ctx, rowButton(0, 2, 476.0f), tr(Str::Retry))) action = GameAction::Restart;
+  if (ui::button(ctx, rowButton(1, 2, 476.0f), tr(Str::Menu))) action = GameAction::Menu;
+  return action;
+}
+
+void Game::drawToast(const Ctx& ctx) const {
+  if (toastTime_ <= 0.0f || toast_.empty()) return;
+  const float k = std::min({1.0f, toastTime_ * 2.0f, (4.5f - toastTime_) * 4.0f});
+  const Rectangle box = {kViewW * 0.5f - 250.0f, 96.0f - (1.0f - k) * 30.0f, 500.0f, 78.0f};
+  DrawRectangleRounded(box, 0.3f, 10, Fade({24, 34, 60, 255}, 0.95f * k));
+  DrawRectangleRoundedLinesEx(box, 0.3f, 10, 2.5f, Fade(ui::kGold, k));
+  ui::star(box.x + 44.0f, box.y + 39.0f, 20.0f, Fade(ui::kGold, k));
+  ui::text(ctx.ui, tr(Str::AchievementUnlocked), box.x + 80.0f, box.y + 12.0f, 17.0f, Fade(ui::kMuted, k));
+  ui::text(ctx.title, toast_.c_str(), box.x + 80.0f, box.y + 33.0f, 30.0f, Fade(ui::kText, k));
+}
+
 const char* Game::title() const {
-  return random_ ? tr(Str::Random) : TextFormat("%d · %s", level_ + 1, levelName(level_));
+  if (kind_ == BoardKind::Random) return tr(Str::Random);
+  if (kind_ == BoardKind::Daily) return tr(Str::Daily);
+  return TextFormat("%d · %s", level_ + 1, levelName(level_));
 }
 
 }  // namespace nm

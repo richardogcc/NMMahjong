@@ -10,6 +10,8 @@
 
 namespace nm {
 
+enum class Difficulty { Easy = 0, Normal = 1, Hard = 2 };
+
 struct Tile {
   Slot pos;
   int face = 0;
@@ -20,7 +22,12 @@ struct Tile {
 class Board {
  public:
   // Reparte las fichas de forma que el tablero tenga solución garantizada.
-  bool generate(const Layout& layout, std::uint32_t seed);
+  // El mismo tablero y la misma semilla dan el mismo reparto en cualquier
+  // sistema. En difícil las parejas quedan más separadas entre sí.
+  bool generate(const Layout& layout, std::uint32_t seed, Difficulty difficulty = Difficulty::Easy);
+  // Reconstruye una partida guardada. Devuelve false si los datos no cuadran.
+  bool restore(const Layout& layout, const std::vector<int>& faces, const std::vector<int>& removed,
+               const std::vector<std::pair<int, int>>& history);
 
   const std::vector<Tile>& tiles() const { return tiles_; }
   // Orden de retirada que resuelve el reparto recién generado.
@@ -32,6 +39,7 @@ class Board {
   bool removePair(int a, int b);
   std::optional<std::pair<int, int>> undo();
   bool canUndo() const { return !history_.empty(); }
+  const std::vector<std::pair<int, int>>& history() const { return history_; }
 
   std::optional<std::pair<int, int>> findHint() const;
   int availableMoves() const;

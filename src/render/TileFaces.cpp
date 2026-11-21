@@ -175,11 +175,80 @@ void season(int index, float cx, float cy) {
   }
 }
 
+// --- Juego clásico: caracteres chinos de verdad ---------------------------
+const char* const kNumerals[9] = {"一", "二", "三", "四", "五", "六", "七", "八", "九"};
+const char* const kWindsCjk[4] = {"北", "南", "東", "西"};
+const char* const kFlowersCjk[4] = {"梅", "蘭", "菊", "竹"};
+const char* const kSeasonsCjk[4] = {"春", "夏", "秋", "冬"};
+constexpr Color kInk = {24, 24, 28, 255};
+
+bool classicFace(int face, Vector2 o, float cx, float cy, const TileStyle& style) {
+  if (!style.cjk || style.cjk->texture.id == 0) return false;
+  const Font& cjk = *style.cjk;
+  if (face >= 18 && face < 27) {
+    centeredText(cjk, kNumerals[face - 18], cx, cy - 46.0f, 96.0f, kInk);
+    centeredText(cjk, "萬", cx, cy + 50.0f, 96.0f, kRed);
+  } else if (face >= 27 && face < 31) {
+    centeredText(cjk, kWindsCjk[face - 27], cx, cy, 136.0f, kInk);
+  } else if (face == 31) {
+    centeredText(cjk, "中", cx, cy, 140.0f, kRed);
+  } else if (face == 32) {
+    centeredText(cjk, "發", cx, cy, 136.0f, kGreen);
+  } else if (face >= 34 && face < 38) {
+    centeredText(cjk, kFlowersCjk[face - 34], cx, cy - 8.0f, 118.0f, kRed);
+    cornerNumber(face - 33, o, *style.font, kNavy);
+  } else if (face >= 38) {
+    centeredText(cjk, kSeasonsCjk[face - 38], cx, cy - 8.0f, 118.0f, kGreen);
+    cornerNumber(face - 37, o, *style.font, kNavy);
+  } else {
+    return false;  // círculos, bambúes y dragón blanco se dibujan igual que en el moderno
+  }
+  return true;
+}
+
+// --- Alto contraste: cifras enormes y un color por palo -------------------
+void contrastFace(int face, float cx, float cy, const TileStyle& style) {
+  const Font& font = *style.font;
+  constexpr Color kDots = {0, 84, 200, 255}, kBams = {0, 128, 60, 255}, kChars = {200, 20, 30, 255};
+  char label[4];
+  if (face < 27) {
+    const int suit = face / 9, number = face % 9 + 1;
+    const Color color = suit == 0 ? kDots : (suit == 1 ? kBams : kChars);
+    std::snprintf(label, sizeof(label), "%d", number);
+    centeredText(font, label, cx, cy - 34.0f, 150.0f, color);
+    // Marca del palo: círculo, barra o rombo.
+    if (suit == 0) DrawCircleV({cx, cy + 66.0f}, 26.0f, color);
+    if (suit == 1) DrawRectangleRounded({cx - 12.0f, cy + 34.0f, 24.0f, 64.0f}, 0.8f, 8, color);
+    if (suit == 2) DrawPoly({cx, cy + 66.0f}, 4, 32.0f, 0.0f, color);
+  } else if (face < 31) {
+    const char* letters[4] = {"N", "S", "E", style.westLetter};
+    centeredText(font, letters[face - 27], cx, cy, 170.0f, BLACK);
+  } else if (face < 34) {
+    const Color fills[3] = {kChars, kBams, WHITE};
+    DrawRectangleRounded({cx - 56.0f, cy - 76.0f, 112.0f, 152.0f}, 0.2f, 8, face == 33 ? kDots : fills[face - 31]);
+    if (face == 33) DrawRectangleRounded({cx - 40.0f, cy - 60.0f, 80.0f, 120.0f}, 0.2f, 8, WHITE);
+  } else {
+    const bool flower = face < 38;
+    const Color color = flower ? Color{190, 0, 140, 255} : Color{220, 110, 0, 255};
+    DrawCircleV({cx, cy - 44.0f}, 44.0f, color);
+    if (!flower) DrawCircleV({cx, cy - 44.0f}, 22.0f, WHITE);
+    std::snprintf(label, sizeof(label), "%d", face - (flower ? 33 : 37));
+    centeredText(font, label, cx, cy + 52.0f, 96.0f, color);
+  }
+}
+
 }  // namespace
 
-void drawTileFace(int face, Vector2 origin, const Font& font, const char* westLetter) {
+void drawTileFace(int face, Vector2 origin, const TileStyle& style) {
   const float cx = origin.x + tile::kFaceW * 0.5f;
   const float cy = origin.y + tile::kFaceH * 0.5f;
+  const Font& font = *style.font;
+  if (style.set == TileSet::Contrast) {
+    contrastFace(face, cx, cy, style);
+    return;
+  }
+  if (style.set == TileSet::Classic && classicFace(face, origin, cx, cy, style)) return;
+
   if (face < 9) {
     dots(face + 1, cx, cy);
   } else if (face < 18) {
@@ -187,7 +256,7 @@ void drawTileFace(int face, Vector2 origin, const Font& font, const char* westLe
   } else if (face < 27) {
     character(face - 17, cx, cy, font);
   } else if (face < 31) {
-    wind(face - 27, cx, cy, font, westLetter);
+    wind(face - 27, cx, cy, font, style.westLetter);
   } else if (face < 34) {
     dragon(face - 31, cx, cy);
   } else if (face < 38) {

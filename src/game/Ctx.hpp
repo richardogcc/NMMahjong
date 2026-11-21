@@ -6,6 +6,7 @@
 #include "raylib.h"
 #include "render/Background.hpp"
 #include "render/TileAtlas.hpp"
+#include "ui/Input.hpp"
 #include "update/Updater.hpp"
 
 namespace nm {
@@ -27,7 +28,9 @@ struct Ctx {
   bool click = false;
   float dt = 0.0f;
   double time = 0.0;
+  Nav nav;                   // teclado y mando
   bool langChanged = false;  // el menú lo activa al cambiar de idioma
+  bool tilesChanged = false; // o el juego de fichas
 };
 
 const Theme& menuTheme();

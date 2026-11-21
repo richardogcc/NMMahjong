@@ -110,13 +110,82 @@ Slots templo() {
   return s;
 }
 
+Slots dragon() {
+  // Un cuerpo en zigzag de tres tramos, con la cabeza y la cola más altas.
+  Slots s;
+  rect(s, 0, 0, 10, 2, 0);
+  rect(s, 16, 4, 2, 1, 0);
+  rect(s, 2, 6, 9, 2, 0);
+  rect(s, 2, 10, 2, 1, 0);
+  rect(s, 2, 12, 10, 2, 0);
+  rect(s, 0, 0, 4, 2, 1);
+  rect(s, 0, 0, 2, 2, 2);
+  rect(s, 6, 6, 5, 2, 1);
+  rect(s, 12, 12, 5, 2, 1);
+  rect(s, 16, 12, 3, 2, 2);
+  return s;
+}
+
+Slots arana() {
+  // Cuerpo central alto y ocho patas que salen en diagonal.
+  Slots s;
+  rect(s, 8, 4, 4, 4, 0);
+  rect(s, 8, 4, 4, 4, 1);
+  rect(s, 10, 6, 2, 2, 2);
+  rect(s, 10, 6, 2, 2, 3);
+  for (int side : {0, 1}) {
+    const int x1 = side == 0 ? 6 : 16, x2 = side == 0 ? 4 : 18, x3 = side == 0 ? 2 : 20, x4 = side == 0 ? 0 : 22;
+    for (int y : {4, 10}) s.push_back({x1, y, 0});
+    for (int y : {2, 12}) s.push_back({x2, y, 0});
+    for (int y : {0, 14}) s.push_back({x3, y, 0});
+    for (int y : {6, 8}) s.push_back({x1, y, 0});
+    for (int y : {6, 8}) s.push_back({x2, y, 0});
+    for (int y : {5, 9}) s.push_back({x3, y, 0});
+    for (int y : {4, 10}) s.push_back({x4, y, 0});
+  }
+  return s;
+}
+
+Slots arco() {
+  // Dos pilares bajo un dintel escalonado, con una pieza suelta en el vano.
+  Slots s;
+  for (int x0 : {0, 20}) {
+    rect(s, x0, 4, 3, 4, 0);
+    rect(s, x0, 4, 3, 4, 1);
+    rect(s, x0 + 1, 5, 2, 3, 2);
+  }
+  rect(s, 0, 0, 13, 2, 0);
+  rect(s, 2, 0, 11, 2, 1);
+  rect(s, 6, 0, 7, 2, 2);
+  rect(s, 10, 0, 3, 2, 3);
+  rect(s, 10, 6, 3, 2, 0);
+  rect(s, 11, 7, 2, 1, 1);
+  return s;
+}
+
+Slots corona() {
+  // Base ancha y cinco puntas, las impares más altas.
+  Slots s;
+  rect(s, 0, 8, 13, 3, 0);
+  rect(s, 1, 9, 12, 2, 1);
+  rect(s, 4, 10, 9, 1, 2);
+  for (int i = 0; i < 5; ++i) {
+    const int x = i * 6, tall = i % 2 == 0 ? 4 : 3;
+    rect(s, x, 8 - 2 * tall, 1, tall, 0);
+    if (i % 2 == 0) rect(s, x, 0, 1, 3, 1);
+  }
+  s.push_back({12, 0, 2});
+  return s;
+}
+
 }  // namespace
 
 const std::vector<Layout>& allLayouts() {
   static const std::vector<Layout> layouts = {
       {"jardin", jardin()},       {"piramide", piramide()}, {"puente", puente()},
       {"tortuga", tortuga()},     {"fortaleza", fortaleza()}, {"mariposa", mariposa()},
-      {"cruz", cruz()},           {"templo", templo()},
+      {"cruz", cruz()},           {"templo", templo()},      {"dragon", dragon()},
+      {"arana", arana()},         {"arco", arco()},          {"corona", corona()},
   };
   return layouts;
 }

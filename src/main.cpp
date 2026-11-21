@@ -1,7 +1,9 @@
 // NM Mahjong — © 2026 Richardo G. Cibea M. Todos los derechos reservados.
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <ctime>
+#include <initializer_list>
 #include <string>
 
 #include "core/Layout.hpp"
@@ -25,18 +27,22 @@ std::string assetDir() {
   return "assets/";
 }
 
-Font loadFont(const std::string& path, int size) {
-  const char* glyphs =
-      " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
-      "áéíóúüñÁÉÍÓÚÜÑ¿¡·©×";
+Font loadFont(const std::string& path, int size, const char* glyphs) {
   int count = 0;
   int* codepoints = LoadCodepoints(glyphs, &count);
   Font font = LoadFontEx(path.c_str(), size, codepoints, count);
   UnloadCodepoints(codepoints);
-  GenTextureMipmaps(&font.texture);
-  SetTextureFilter(font.texture, TEXTURE_FILTER_TRILINEAR);
+  if (font.texture.id != 0) {
+    GenTextureMipmaps(&font.texture);
+    SetTextureFilter(font.texture, TEXTURE_FILTER_TRILINEAR);
+  }
   return font;
 }
+
+const char* const kLatin =
+    " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+    "áéíóúüñÁÉÍÓÚÜÑ¿¡·©×";
+const char* const kChinese = "一二三四五六七八九萬東南西北中發梅蘭菊竹春夏秋冬";
 
 void saveFrame(const std::string& path) {
   rlDrawRenderBatchActive();
@@ -45,18 +51,36 @@ void saveFrame(const std::string& path) {
   UnloadImage(image);
 }
 
-// Modo de capturas para la documentación: NM_CAPTURE=<carpeta> recorre el menú
-// y una partida, guarda las imágenes y cierra. NM_CAPTURE_LEVEL elige el nivel.
+// Modo de capturas para la documentación y las pruebas: NM_CAPTURE=<carpeta>
+// recorre el menú y una partida, guarda las imágenes y cierra.
+//   NM_CAPTURE_LEVEL   nivel (0-11), -1 aleatorio, -2 reto diario, -3 continuar la guardada
+//   NM_CAPTURE_PERSIST usa y escribe el guardado (para probar con HOME apuntando a una carpeta de prueba)
+//   NM_CAPTURE_SUSPEND tras unas jugadas guarda la partida y cierra
+//   NM_CAPTURE_PANEL   1 opciones, 2 estadísticas, 3 logros, 4 tutorial
+//   NM_CAPTURE_PAUSE   captura también la pantalla de pausa
+//   NM_CAPTURE_FRAMES  fotogramas seguidos para montar un vídeo
+//   NM_TILES, NM_STYLE, NM_DIFFICULTY  fuerzan esos ajustes
 struct Capture {
   std::string dir;
   int level = 3;
   int stage = 0;
   float timer = 0.0f;
   int movesDone = 0;
-  int frames = 0;      // NM_CAPTURE_FRAMES: fotogramas seguidos para montar un vídeo
+  int frames = 0;
   int framesSaved = 0;
   bool active() const { return !dir.empty(); }
+  GameRequest request() const {
+    if (level == -1) return {BoardKind::Random, 0, false};
+    if (level == -2) return {BoardKind::Daily, 0, false};
+    if (level == -3) return {BoardKind::Level, 0, true};
+    return {BoardKind::Level, level, false};
+  }
 };
+
+int envInt(const char* name, int fallback) {
+  const char* value = std::getenv(name);
+  return value ? std::atoi(value) : fallback;
+}
 
 }  // namespace
 
@@ -70,16 +94,21 @@ int main() {
 
   SaveData save;
   save.load();
-  setLang(save.lang < 0 ? systemLang() : static_cast<Lang>(save.lang));
 
   Capture capture;
   if (const char* dir = std::getenv("NM_CAPTURE")) capture.dir = dir;
-  if (capture.active()) {
+  capture.level = envInt("NM_CAPTURE_LEVEL", capture.level);
+  capture.frames = envInt("NM_CAPTURE_FRAMES", 0);
+  if (capture.active() && !std::getenv("NM_CAPTURE_PERSIST")) {
     save = SaveData{};  // las capturas no leen ni tocan el progreso real
     save.persist = false;
+    save.tutorialDone = true;
+    save.tileSet = std::clamp(envInt("NM_TILES", 0), 0, 2);
+    save.playStyle = std::clamp(envInt("NM_STYLE", 0), 0, 2);
+    save.difficulty = std::clamp(envInt("NM_DIFFICULTY", 0), 0, 2);
+    save.store();  // deja anotado que no se escribe en disco
   }
-  if (const char* level = std::getenv("NM_CAPTURE_LEVEL")) capture.level = std::atoi(level);
-  if (const char* frames = std::getenv("NM_CAPTURE_FRAMES")) capture.frames = std::atoi(frames);
+  setLang(save.lang < 0 ? systemLang() : static_cast<Lang>(save.lang));
   if (const char* forced = std::getenv("NM_LANG")) setLang(forced[0] == 'e' && forced[1] == 'n' ? Lang::En : Lang::Es);
 
   const std::string assets = assetDir();
@@ -87,41 +116,68 @@ int main() {
   audio.init(assets);
   audio.setMusicVolume(capture.active() ? 0.0f : save.music);
   audio.setSfxVolume(capture.active() ? 0.0f : save.sfx);
+  audio.setFixedTrack(save.musicTrack);
 
   Background background;
   background.init(assets);
   TileAtlas atlas;
 
   Ctx ctx;
-  ctx.title = loadFont(assets + "fonts/LilitaOne-Regular.ttf", 112);
-  ctx.ui = loadFont(assets + "fonts/Poppins-SemiBold.ttf", 64);
+  ctx.title = loadFont(assets + "fonts/LilitaOne-Regular.ttf", 112, kLatin);
+  ctx.ui = loadFont(assets + "fonts/Poppins-SemiBold.ttf", 64, kLatin);
+  Font cjk = loadFont(assets + "fonts/LXGWWenKaiTC-subset.ttf", 128, kChinese);
   ctx.audio = &audio;
   ctx.save = &save;
   ctx.atlas = &atlas;
   Updater updater;
   ctx.updater = &updater;
   if (!capture.active()) updater.check();
-  atlas.build(ctx.title, tr(Str::West));
+
+  auto buildTiles = [&]() {
+    TileStyle style;
+    style.set = static_cast<TileSet>(save.tileSet);
+    style.font = &ctx.title;
+    style.cjk = &cjk;
+    style.westLetter = tr(Str::West);
+    atlas.build(style);
+  };
+  buildTiles();
 
   Menu menu;
   Game game;
   Scene scene = Scene::Menu;
   Scene nextScene = Scene::Menu;
-  int nextLevel = 0;
+  GameRequest nextRequest;
   bool switching = false, quit = false;
   float fade = 1.0f;  // 1 = negro, 0 = visible
+  Vector2 pointer = {kViewW * 0.5f, kViewH * 0.5f};  // puntero que mueve la palanca del mando
+  bool pointerActive = false;
   audio.setMood(menuTheme().mood);
 
   while (!WindowShouldClose() && !quit) {
     ctx.dt = std::min(GetFrameTime(), 0.05f);
     ctx.time = GetTime();
+    ctx.nav = readNav();
 
     const float sw = static_cast<float>(GetScreenWidth()), sh = static_cast<float>(GetScreenHeight());
     Camera2D camera = {};
     camera.zoom = std::min(sw / kViewW, sh / kViewH);
     camera.offset = {(sw - kViewW * camera.zoom) * 0.5f, (sh - kViewH * camera.zoom) * 0.5f};
-    ctx.mouse = GetScreenToWorld2D(GetMousePosition(), camera);
-    ctx.click = !switching && fade < 0.5f && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+
+    // Con el mando, la palanca mueve un puntero y el botón A hace clic.
+    const Vector2 mouseDelta = GetMouseDelta();
+    if (std::fabs(mouseDelta.x) + std::fabs(mouseDelta.y) > 0.5f) pointerActive = false;
+    if (ctx.nav.stick.x != 0.0f || ctx.nav.stick.y != 0.0f) {
+      if (!pointerActive) pointer = GetScreenToWorld2D(GetMousePosition(), camera);
+      pointerActive = true;
+      pointer.x = std::clamp(pointer.x + ctx.nav.stick.x * 900.0f * ctx.dt, 0.0f, kViewW);
+      pointer.y = std::clamp(pointer.y + ctx.nav.stick.y * 900.0f * ctx.dt, 0.0f, kViewH);
+    }
+    if (ctx.nav.up || ctx.nav.down || ctx.nav.left || ctx.nav.right) pointerActive = false;
+    ctx.mouse = pointerActive ? pointer : GetScreenToWorld2D(GetMousePosition(), camera);
+    const bool ready = !switching && fade < 0.5f;
+    ctx.click = ready && (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || (pointerActive && ctx.nav.accept));
+    if (pointerActive) ctx.nav.accept = false;  // ese A ya ha servido de clic
     if (IsKeyPressed(KEY_F11)) ToggleBorderlessWindowed();
 
     // Fundido entre pantallas.
@@ -129,36 +185,47 @@ int main() {
       fade = std::min(1.0f, fade + ctx.dt * 4.0f);
       if (fade >= 1.0f) {
         scene = nextScene;
-        if (scene == Scene::Play) game.start(nextLevel, ctx);
+        if (scene == Scene::Play) game.start(nextRequest, ctx);
         else audio.setMood(menuTheme().mood);
         switching = false;
       }
     } else {
       fade = std::max(0.0f, fade - ctx.dt * 3.0f);
     }
-    auto go = [&](Scene target, int level) {
+    auto go = [&](Scene target, const GameRequest& request) {
       nextScene = target;
-      nextLevel = level;
+      nextRequest = request;
       switching = true;
     };
 
     audio.update(ctx.dt);
-    if (scene == Scene::Play) game.update(ctx);
+    if (scene == Scene::Play) {
+      if (ready && ctx.nav.pause) game.togglePause();
+      game.update(ctx);
+    }
 
     BeginDrawing();
     ClearBackground(BLACK);
-    background.draw(scene == Scene::Menu ? menuTheme() : levelTheme(game.themeIndex()), ctx.time, ctx.dt);
+    background.draw(scene == Scene::Menu ? menuTheme() : levelTheme(game.themeIndex()), ctx.time, ctx.dt,
+                    save.animatedBg);
     BeginMode2D(camera);
     if (scene == Scene::Menu) {
       const MenuResult result = menu.draw(ctx);
-      if (result.kind == MenuResult::Kind::Play) go(Scene::Play, result.level);
+      if (result.kind == MenuResult::Kind::Play) go(Scene::Play, result.request);
       if (result.kind == MenuResult::Kind::Quit) quit = true;
     } else {
       const GameAction action = game.draw(ctx);
-      if (action == GameAction::Menu) go(Scene::Menu, 0);
-      if (action == GameAction::Restart) go(Scene::Play, game.level());
-      if (action == GameAction::Next) go(Scene::Play, game.level() < 0 ? -1 : game.level() + 1);
-      if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_P)) game.togglePause();
+      if (action == GameAction::Menu) {
+        game.suspend();  // se podrá continuar desde el menú
+        save.store();
+        go(Scene::Menu, {});
+      }
+      if (action == GameAction::Restart) go(Scene::Play, game.sameRequest());
+      if (action == GameAction::Next) go(Scene::Play, game.nextRequest());
+    }
+    if (pointerActive) {
+      DrawCircleV(pointer, 11.0f, Fade(BLACK, 0.5f));
+      DrawCircleV(pointer, 8.0f, {255, 205, 86, 255});
     }
     EndMode2D();
     if (fade > 0.0f) DrawRectangle(0, 0, static_cast<int>(sw) + 1, static_cast<int>(sh) + 1, Fade(BLACK, fade));
@@ -167,9 +234,17 @@ int main() {
       capture.timer += ctx.dt;
       if (capture.stage == 0 && capture.timer > 1.5f) {
         saveFrame(capture.dir + "/menu.png");
-        go(Scene::Play, capture.level);
-        capture.stage = 1;
+        if (const int panel = envInt("NM_CAPTURE_PANEL", 0); panel > 0) {
+          menu.openPanel(panel);
+          capture.stage = 30;
+        } else {
+          go(Scene::Play, capture.request());
+          capture.stage = 1;
+        }
         capture.timer = 0.0f;
+      } else if (capture.stage == 30 && capture.timer > 0.5f) {
+        saveFrame(capture.dir + "/panel.png");
+        quit = true;
       } else if (capture.stage == 1 && capture.timer > 4.0f) {
         saveFrame(capture.dir + "/game.png");
         capture.stage = capture.frames > 0 ? 10 : 2;
@@ -193,6 +268,10 @@ int main() {
         } else {
           saveFrame(capture.dir + "/effects.png");
           capture.stage = 3;
+          if (std::getenv("NM_CAPTURE_SUSPEND")) {
+            game.suspend();
+            quit = true;
+          }
         }
       } else if (capture.stage == 3 && capture.timer > 0.03f) {
         capture.timer = 0.0f;
@@ -209,17 +288,25 @@ int main() {
     if (std::getenv("NM_UPDATE_AUTO") && updater.state() == Updater::State::Available) updater.install();
 #endif
     // La versión nueva ya está preparada: se cede el paso al relevo y se cierra.
-    if (updater.state() == Updater::State::Ready && updater.restartIntoUpdate()) quit = true;
+    if (updater.state() == Updater::State::Ready) {
+      if (scene == Scene::Play) game.suspend();
+      if (updater.restartIntoUpdate()) quit = true;
+    }
 
-    if (ctx.langChanged) {
-      atlas.build(ctx.title, tr(Str::West));
-      ctx.langChanged = false;
+    if (ctx.langChanged || ctx.tilesChanged) {
+      buildTiles();
+      ctx.langChanged = ctx.tilesChanged = false;
     }
   }
+
+  // Al cerrar a mitad de partida, se guarda para continuarla.
+  if (scene == Scene::Play && !capture.active()) game.suspend();
+  save.store();
 
   atlas.unload();
   UnloadFont(ctx.title);
   UnloadFont(ctx.ui);
+  if (cjk.texture.id != 0) UnloadFont(cjk);
   background.shutdown();
   audio.shutdown();
   CloseWindow();

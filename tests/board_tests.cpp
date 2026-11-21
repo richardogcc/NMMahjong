@@ -122,6 +122,51 @@ void testRandomLayouts() {
   CHECK(sizes.size() >= 15, "los tableros aleatorios deberían variar más (%zu tamaños)", sizes.size());
 }
 
+void testDeterminismAndRestore() {
+  // Mismo tablero y semilla: mismo reparto siempre (y en cualquier sistema).
+  const nm::Layout& turtle = nm::allLayouts()[3];
+  nm::Board a, b;
+  a.generate(turtle, 20261121u);
+  b.generate(turtle, 20261121u);
+  bool same = true;
+  unsigned long long sum = 0;
+  for (std::size_t i = 0; i < a.tiles().size(); ++i) {
+    same = same && a.tiles()[i].face == b.tiles()[i].face;
+    sum = sum * 31 + static_cast<unsigned long long>(a.tiles()[i].face);
+  }
+  CHECK(same, "dos repartos con la misma semilla deben coincidir");
+  CHECK(sum == 8511652726526134804ull, "el reparto de referencia ha cambiado: %llu", sum);
+
+  // Difícil sigue teniendo solución.
+  for (std::uint32_t seed = 1; seed <= 20; ++seed) {
+    nm::Board hard;
+    CHECK(hard.generate(turtle, seed, nm::Difficulty::Hard), "difícil: no se pudo repartir");
+    for (const auto& [x, y] : hard.solution()) CHECK(hard.removePair(x, y), "difícil: solución inválida");
+    CHECK(hard.cleared(), "difícil: quedan fichas");
+  }
+
+  // Guardar y recuperar una partida a medias.
+  for (int i = 0; i < 6; ++i) {
+    const auto h = a.findHint();
+    if (h) a.removePair(h->first, h->second);
+  }
+  std::vector<int> faces, removed;
+  for (const nm::Tile& t : a.tiles()) {
+    faces.push_back(t.face);
+    removed.push_back(t.removed ? 1 : 0);
+  }
+  nm::Board c;
+  CHECK(c.restore(turtle, faces, removed, a.history()), "debe recuperar una partida válida");
+  CHECK(c.remaining() == a.remaining() && c.availableMoves() == a.availableMoves(), "la partida recuperada coincide");
+  CHECK(c.undo().has_value() && c.remaining() == a.remaining() + 2, "la partida recuperada conserva el deshacer");
+  faces[0] = 99;
+  CHECK(!c.restore(turtle, faces, removed, {}), "rechaza caras fuera de rango");
+  faces[0] = a.tiles()[0].face;
+  removed[0] = removed[0] ? 0 : 1;
+  CHECK(!c.restore(turtle, faces, removed, {}), "rechaza fichas sin pareja");
+  CHECK(!c.restore(turtle, {1, 2}, {0, 0}, {}), "rechaza tamaños que no cuadran");
+}
+
 void testVersions() {
   std::array<int, 3> v{};
   CHECK(nm::parseVersion("v1.2.3", v) && v == (std::array<int, 3>{1, 2, 3}), "v1.2.3");
@@ -178,7 +223,7 @@ int main() {
   testVersions();
   testReleaseParsing();
   testSha256();
-  CHECK(nm::allLayouts().size() >= 8, "se esperan al menos 8 niveles");
+  CHECK(nm::allLayouts().size() == 12, "se esperan 12 niveles");
   CHECK(nm::matchGroup(34) == nm::matchGroup(37), "las flores emparejan entre sí");
   CHECK(nm::matchGroup(38) == nm::matchGroup(41), "las estaciones emparejan entre sí");
   CHECK(nm::matchGroup(34) != nm::matchGroup(38), "flores y estaciones no se mezclan");
@@ -189,6 +234,7 @@ int main() {
   }
   testRules();
   testRandomLayouts();
+  testDeterminismAndRestore();
   std::printf(failures == 0 ? "Todas las pruebas correctas\n" : "%d fallos\n", failures);
   return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

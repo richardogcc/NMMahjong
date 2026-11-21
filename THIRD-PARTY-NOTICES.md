@@ -117,13 +117,16 @@ redistributed on their own outside the game.
 
 ## Tipografías · Fonts
 
-Ambas se distribuyen sin modificar bajo la SIL Open Font License 1.1. El texto
-completo de la licencia va junto a cada fuente en `assets/fonts/`.
+Todas bajo la SIL Open Font License 1.1; el texto completo de la licencia va
+junto a cada fuente en `assets/fonts/`. Poppins y Lilita One se distribuyen
+sin modificar; LXGW WenKai TC se ha **recortado** a los 24 caracteres que usan
+las fichas clásicas.
 
 | Fuente | Copyright | Licencia |
 |---|---|---|
 | Poppins SemiBold | © 2020 The Poppins Project Authors (<https://github.com/itfoundry/Poppins>) | SIL OFL 1.1 — `assets/fonts/Poppins-OFL.txt` |
 | Lilita One | © 2011 Juan Montoreano, con nombre de fuente reservado «Lilita» | SIL OFL 1.1 — `assets/fonts/LilitaOne-OFL.txt` |
+| LXGW WenKai TC (subconjunto) | © 2024 The LXGW WenKai Project Authors (<https://github.com/lxgw/LxgwWenkaiTC>) | SIL OFL 1.1 — `assets/fonts/LXGWWenKaiTC-OFL.txt` |
 
 ---
 

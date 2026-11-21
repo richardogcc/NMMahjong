@@ -2,6 +2,7 @@
 #include "ui/Ui.hpp"
 
 #include <cmath>
+#include <string>
 
 namespace nm::ui {
 
@@ -15,6 +16,36 @@ void text(const Font& font, const char* str, float x, float y, float size, Color
 
 void textCentered(const Font& font, const char* str, float cx, float y, float size, Color color) {
   text(font, str, cx - textWidth(font, str, size) * 0.5f, y, size, color);
+}
+
+float textWrapped(const Font& font, const char* str, float x, float y, float width, float size, Color color,
+                  bool centered) {
+  std::string line, word;
+  float used = 0.0f;
+  auto flush = [&]() {
+    if (line.empty()) return;
+    const float lineX = centered ? x + (width - textWidth(font, line.c_str(), size)) * 0.5f : x;
+    text(font, line.c_str(), lineX, y + used, size, color);
+    used += size * 1.32f;
+    line.clear();
+  };
+  for (const char* c = str;; ++c) {
+    if (*c == ' ' || *c == '\0') {
+      const std::string candidate = line.empty() ? word : line + " " + word;
+      if (!line.empty() && textWidth(font, candidate.c_str(), size) > width) {
+        flush();
+        line = word;
+      } else {
+        line = candidate;
+      }
+      word.clear();
+      if (*c == '\0') break;
+    } else {
+      word.push_back(*c);
+    }
+  }
+  flush();
+  return used;
 }
 
 void panel(Rectangle rect, float alpha) {

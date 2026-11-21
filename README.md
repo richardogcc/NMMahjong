@@ -3,7 +3,7 @@
 # NM Mahjong
 
 Un solitario de mahjong para relajarse: empareja fichas, despeja el tablero y
-avanza por ocho niveles con su propio paisaje y su propia música.
+avanza por doce niveles con su propio paisaje y su propia música.
 
 *[English below](#english)*
 
@@ -11,9 +11,17 @@ avanza por ocho niveles con su propio paisaje y su propia música.
 
 ## Qué ofrece
 
-- **Ocho niveles** con formas distintas, del pequeño *Jardín* a los 144
-  fichas de *Tortuga* y *Templo*. Cada nivel se desbloquea al completar el
-  anterior.
+- **Doce niveles** con formas distintas, del pequeño *Jardín* a los 144
+  fichas de *Tortuga* y *Templo*, más *Dragón*, *Araña*, *Arco* y *Corona*.
+  Cada nivel se desbloquea al completar el anterior.
+- **Reto diario**: el mismo tablero para todo el mundo cada día, con racha.
+- **Tres modos**: normal, contrarreloj y zen (sin reloj ni puntos), y tres
+  niveles de dificultad.
+- **Continuar**: si cierras a mitad de partida, la retomas donde estaba.
+- **Tres juegos de fichas**: modernas, clásicas con caracteres chinos y de
+  alto contraste.
+- **Estadísticas y logros**, y un tutorial de un minuto.
+- **Ratón, teclado o mando**.
 - **Siempre tiene solución.** Las fichas se reparten de forma que el tablero
   pueda despejarse entero.
 - **Paisajes de China**: cada nivel tiene su fotografía —la Gran Muralla, la
@@ -55,7 +63,7 @@ Las versiones se publican en la sección **Releases** de este repositorio.
 `NMMahjong.exe`. La primera vez Windows puede mostrar un aviso de SmartScreen:
 pulsa *Más información* y luego *Ejecutar de todas formas*.
 
-**macOS (Apple Silicon: M1 o posterior).** Descarga el archivo `.dmg`, ábrelo
+**macOS (Apple Silicon o Intel).** Descarga el archivo `-macOS-universal.dmg`, ábrelo
 y arrastra *NMMahjong* a *Aplicaciones*. La primera vez haz clic derecho sobre
 la aplicación y elige *Abrir*; si macOS la bloquea, permítela desde *Ajustes
 del Sistema → Privacidad y seguridad*.
@@ -79,12 +87,21 @@ música y de las fotografías de fondo—, en [THIRD-PARTY-NOTICES.md](THIRD-PAR
 # NM Mahjong (English)
 
 A mahjong solitaire to unwind with: match tiles, clear the board and work your
-way through eight levels, each with its own scenery and music.
+way through twelve levels, each with its own scenery and music.
 
 ## What you get
 
-- **Eight levels** with different shapes, from the small *Garden* to the 144
-  tiles of *Turtle* and *Temple*. Clearing a level unlocks the next one.
+- **Twelve levels** with different shapes, from the small *Garden* to the 144
+  tiles of *Turtle* and *Temple*, plus *Dragon*, *Spider*, *Arch* and *Crown*.
+  Clearing a level unlocks the next one.
+- **Daily challenge**: the same board for everyone each day, with a streak.
+- **Three modes**: normal, time attack and zen (no clock, no score), and
+  three difficulty levels.
+- **Continue**: quit mid-game and pick it up where you left off.
+- **Three tile sets**: modern, classic with Chinese characters, and high
+  contrast.
+- **Statistics and achievements**, and a one-minute tutorial.
+- **Mouse, keyboard or gamepad**.
 - **Always solvable.** Tiles are dealt so the whole board can be cleared.
 - **Chinese scenery**: every level has its own photograph (the Great Wall,
   the Forbidden City, the Huangshan mountains, rice terraces) with slow
@@ -120,7 +137,7 @@ Versions are published in the **Releases** section of this repository.
 `NMMahjong.exe`. The first time, Windows may show a SmartScreen warning: click
 *More info* and then *Run anyway*.
 
-**macOS (Apple Silicon: M1 or later).** Download the `.dmg` file, open it and
+**macOS (Apple Silicon or Intel).** Download the `-macOS-universal.dmg` file, open it and
 drag *NMMahjong* into *Applications*. The first time, right-click the app and
 choose *Open*; if macOS blocks it, allow it in *System Settings → Privacy &
 Security*.

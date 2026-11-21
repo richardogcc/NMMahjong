@@ -20,6 +20,12 @@ class Audio {
   void update(float dt);
 
   void play(Sfx sfx, float pitch = 1.0f);
+  // Nota de cuerda pulsada: grado de una escala pentatónica (0, 1, 2…).
+  void playNote(int degree);
+  // Pieza fija, o -1 para que cambie con el nivel.
+  void setFixedTrack(int track) { fixedTrack_ = track; }
+  int trackCount() const { return static_cast<int>(tracks_.size()); }
+  const char* trackName(int index) const;
   void setMusicVolume(float volume);
   void setSfxVolume(float volume);
   // Elige la pieza que suena (o el carácter de la música generada).
@@ -31,6 +37,9 @@ class Audio {
   float sfxVolume_ = 0.8f;
   float musicVolume_ = 0.6f;
   std::vector<Music> tracks_;
+  std::vector<std::string> trackNames_;
+  Sound pluck_ = {};
+  int fixedTrack_ = -1;
   int current_ = -1, wanted_ = 0;
   float fade_ = 0.0f;  // 0 en silencio, 1 a su volumen
   bool ready_ = false;

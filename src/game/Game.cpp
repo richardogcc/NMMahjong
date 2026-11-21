@@ -1,4 +1,5 @@
 // NM Mahjong — © 2026 Richardo G. Cibea M. Todos los derechos reservados.
+// Montaje de la partida, geometría del tablero y guardado.
 #include "game/Game.hpp"
 
 #include <algorithm>
@@ -13,29 +14,86 @@ namespace {
 constexpr float kBoardTop = 92.0f;
 constexpr float kBoardW = 1480.0f;
 constexpr float kBoardH = 780.0f;
-constexpr float kGhostTime = 0.45f;
-constexpr float kComboWindow = 5.0f;
 
 std::uint32_t randomSeed() { return static_cast<std::uint32_t>(GetRandomValue(1, 2000000000)); }
 
+// El reto diario sale de la fecha: mismo tablero y mismo reparto para todos.
+std::uint32_t dailySeed() { return static_cast<std::uint32_t>(todayDate()) * 2654435761u; }
+
 }  // namespace
 
-void Game::start(int levelIndex, Ctx& ctx) {
-  const auto& layouts = allLayouts();
-  random_ = levelIndex < 0;
-  if (random_) {
+const Layout& Game::layout() const {
+  return kind_ == BoardKind::Level ? allLayouts()[level_] : generated_;
+}
+
+void Game::start(const GameRequest& request, Ctx& ctx) {
+  if (request.resume && resume(ctx)) return;
+  clearSavedGame();
+
+  const int levels = static_cast<int>(allLayouts().size());
+  SaveData& save = *ctx.save;
+  kind_ = request.kind;
+  level_ = std::clamp(request.level, 0, levels - 1);
+  difficulty_ = static_cast<Difficulty>(save.difficulty);
+  style_ = static_cast<PlayStyle>(save.playStyle);
+
+  if (kind_ == BoardKind::Level) {
+    themeIndex_ = level_;
+    board_.generate(allLayouts()[level_], randomSeed(), difficulty_);
+  } else if (kind_ == BoardKind::Daily) {
+    layoutSeed_ = dailySeed();
+    generated_ = randomLayout(layoutSeed_);
+    // Reparto fijo, sin depender de la dificultad elegida, para que sea igual para todos.
+    std::uint32_t deal = layoutSeed_ + 1;
+    while (!board_.generate(generated_, deal)) ++deal;
+    themeIndex_ = static_cast<int>(layoutSeed_ % static_cast<std::uint32_t>(levels));
+  } else {
     // Tablero nuevo cada vez; se repite si alguna forma rara no admite reparto.
     do {
-      randomLayout_ = randomLayout(randomSeed());
-    } while (!board_.generate(randomLayout_, randomSeed()));
-    level_ = 0;
-    themeIndex_ = GetRandomValue(0, static_cast<int>(layouts.size()) - 1);
-  } else {
-    level_ = std::clamp(levelIndex, 0, static_cast<int>(layouts.size()) - 1);
-    themeIndex_ = level_;
-    board_.generate(layouts[level_], randomSeed());
+      layoutSeed_ = randomSeed();
+      generated_ = randomLayout(layoutSeed_);
+    } while (!board_.generate(generated_, randomSeed(), difficulty_));
+    themeIndex_ = GetRandomValue(0, levels - 1);
   }
 
+  resetRound(ctx);
+  elapsed_ = 0.0f;
+  score_ = hintsUsed_ = shufflesUsed_ = 0;
+  const float perTile = difficulty_ == Difficulty::Easy ? 6.0f : (difficulty_ == Difficulty::Normal ? 5.0f : 4.0f);
+  timeLeft_ = static_cast<float>(board_.tiles().size()) * perTile;
+  dealAnimation(0.15f);
+  ++save.played;
+  save.store();
+}
+
+bool Game::resume(Ctx& ctx) {
+  SavedGame saved;
+  if (!loadSavedGame(saved)) return false;
+  const int levels = static_cast<int>(allLayouts().size());
+  kind_ = static_cast<BoardKind>(saved.kind);
+  level_ = std::clamp(saved.level, 0, levels - 1);
+  layoutSeed_ = saved.layoutSeed;
+  if (kind_ != BoardKind::Level) generated_ = randomLayout(layoutSeed_);
+  if (!board_.restore(layout(), saved.faces, saved.removed, saved.history) || board_.cleared()) {
+    clearSavedGame();
+    return false;
+  }
+  themeIndex_ = saved.theme % levels;
+  difficulty_ = static_cast<Difficulty>(saved.difficulty);
+  style_ = static_cast<PlayStyle>(saved.playStyle);
+  resetRound(ctx);
+  elapsed_ = saved.elapsed;
+  timeLeft_ = saved.timeLeft;
+  score_ = saved.score;
+  hintsUsed_ = saved.hintsUsed;
+  shufflesUsed_ = saved.shufflesUsed;
+  dealAnimation(0.0f);
+  afterBoardChange(ctx);
+  return true;
+}
+
+// Lo que se reinicia igual al empezar y al continuar una partida.
+void Game::resetRound(Ctx& ctx) {
   views_.assign(board_.tiles().size(), TileView{});
   ghosts_.clear();
   popups_.clear();
@@ -43,14 +101,41 @@ void Game::start(int levelIndex, Ctx& ctx) {
   state_ = State::Playing;
   deadEnd_ = false;
   stateTime_ = introTime_ = confettiTimer_ = 0.0f;
-  selected_ = hover_ = hintA_ = hintB_ = -1;
-  hintTimer_ = elapsed_ = comboTimer_ = 0.0f;
-  score_ = combo_ = stars_ = hintsUsed_ = shufflesUsed_ = 0;
+  selected_ = hover_ = hintA_ = hintB_ = cursor_ = -1;
+  cursorActive_ = false;
+  hintTimer_ = comboTimer_ = toastTime_ = 0.0f;
+  combo_ = stars_ = 0;
+  toast_.clear();
+
+  const bool free = style_ == PlayStyle::Zen || difficulty_ == Difficulty::Easy;
+  hintLimit_ = free ? -1 : (difficulty_ == Difficulty::Normal ? 5 : 2);
+  shuffleLimit_ = free ? -1 : (difficulty_ == Difficulty::Normal ? 3 : 1);
 
   layoutBoard();
-  dealAnimation(0.15f);
   moves_ = board_.availableMoves();
   ctx.audio->setMood(themeIndex_ + 1);  // la pieza 0 es la del menú
+}
+
+void Game::suspend() const {
+  if (finished() || board_.cleared() || board_.tiles().empty()) return;
+  SavedGame g;
+  g.kind = static_cast<int>(kind_);
+  g.level = level_;
+  g.layoutSeed = layoutSeed_;
+  g.theme = themeIndex_;
+  g.difficulty = static_cast<int>(difficulty_);
+  g.playStyle = static_cast<int>(style_);
+  g.score = score_;
+  g.hintsUsed = hintsUsed_;
+  g.shufflesUsed = shufflesUsed_;
+  g.elapsed = elapsed_;
+  g.timeLeft = timeLeft_;
+  for (const Tile& t : board_.tiles()) {
+    g.faces.push_back(t.face);
+    g.removed.push_back(t.removed ? 1 : 0);
+  }
+  g.history = board_.history();
+  storeSavedGame(g);
 }
 
 void Game::layoutBoard() {
@@ -114,159 +199,6 @@ int Game::pick(Vector2 mouse) const {
   return -1;
 }
 
-void Game::update(Ctx& ctx) {
-  const float dt = ctx.dt;
-  introTime_ += dt;
-  stateTime_ += dt;
-  particles_.update(dt);
-
-  for (Ghost& g : ghosts_) {
-    g.t += dt / kGhostTime;
-    if (g.t >= 1.0f && g.burst) {
-      particles_.burst(g.to, levelTheme(themeIndex_).mote, 34, 420.0f);
-      particles_.burst(g.to, ui::kGold, 14, 260.0f);
-    }
-  }
-  std::erase_if(ghosts_, [](const Ghost& g) { return g.t >= 1.0f; });
-  for (Popup& p : popups_) {
-    p.t += dt;
-    p.pos.y -= 46.0f * dt;
-  }
-  std::erase_if(popups_, [](const Popup& p) { return p.t >= 1.2f; });
-
-  hover_ = state_ == State::Playing ? pick(ctx.mouse) : -1;
-  for (int i = 0; i < static_cast<int>(views_.size()); ++i) {
-    TileView& v = views_[i];
-    if (introTime_ >= v.delay) v.appear = std::min(1.0f, v.appear + dt * 3.4f);
-    const bool raised = i == selected_ || (i == hover_ && board_.isFree(i));
-    v.lift += ((raised ? 1.0f : 0.0f) - v.lift) * std::min(1.0f, dt * 14.0f);
-    v.shake = std::max(0.0f, v.shake - dt * 2.6f);
-    v.pop = std::max(0.0f, v.pop - dt * 3.0f);
-  }
-
-  if (state_ == State::Playing) {
-    elapsed_ += dt;
-    hintTimer_ = std::max(0.0f, hintTimer_ - dt);
-    if (hintTimer_ <= 0.0f) hintA_ = hintB_ = -1;
-    comboTimer_ -= dt;
-    if (comboTimer_ <= 0.0f) combo_ = 0;
-    if (ctx.click && ctx.mouse.y > 84.0f) handleClick(hover_, ctx);
-  } else if (state_ == State::Won) {
-    confettiTimer_ -= dt;
-    if (confettiTimer_ <= 0.0f && stateTime_ < 5.0f) {
-      confettiTimer_ = 0.45f;
-      particles_.confetti({static_cast<float>(GetRandomValue(250, 1350)), 900.0f}, 46);
-    }
-  }
-}
-
-void Game::handleClick(int index, Ctx& ctx) {
-  if (index < 0) {
-    selected_ = -1;
-    return;
-  }
-  if (!board_.isFree(index)) {
-    views_[index].shake = 1.0f;
-    ctx.audio->play(Sfx::Error);
-    return;
-  }
-  if (index == selected_) {
-    selected_ = -1;
-    ctx.audio->play(Sfx::Click);
-  } else if (selected_ >= 0 && board_.canMatch(selected_, index)) {
-    match(selected_, index, ctx);
-  } else {
-    selected_ = index;
-    ctx.audio->play(Sfx::Select);
-  }
-}
-
-void Game::match(int a, int b, Ctx& ctx) {
-  const auto& tiles = board_.tiles();
-  const Vector2 ca = faceCenter(tiles[a].pos), cb = faceCenter(tiles[b].pos);
-  const Vector2 mid = {(ca.x + cb.x) * 0.5f, (ca.y + cb.y) * 0.5f};
-  const int faceA = tiles[a].face, faceB = tiles[b].face;
-  if (!board_.removePair(a, b)) return;
-
-  ghosts_.push_back({faceA, ca, mid, 0.0f, true});
-  ghosts_.push_back({faceB, cb, mid, 0.0f, false});
-  particles_.burst(ca, WHITE, 8, 160.0f);
-  particles_.burst(cb, WHITE, 8, 160.0f);
-
-  combo_ = comboTimer_ > 0.0f ? std::min(combo_ + 1, 9) : 1;
-  comboTimer_ = kComboWindow;
-  const int points = 100 * combo_;
-  score_ += points;
-  popups_.push_back({{mid.x, mid.y - 30.0f}, TextFormat("+%d", points), 0.0f, WHITE});
-  if (combo_ >= 2)
-    popups_.push_back({{mid.x, mid.y - 68.0f}, TextFormat("%s x%d", tr(Str::Combo), combo_), 0.0f, ui::kGold});
-  ctx.audio->play(Sfx::Match, 1.0f + 0.06f * (combo_ - 1));
-
-  selected_ = hintA_ = hintB_ = -1;
-  afterBoardChange(ctx);
-}
-
-void Game::afterBoardChange(Ctx& ctx) {
-  moves_ = board_.availableMoves();
-  if (board_.cleared()) {
-    win(ctx);
-  } else if (moves_ == 0) {
-    state_ = State::Stuck;
-    stateTime_ = 0.0f;
-  } else {
-    state_ = State::Playing;
-  }
-}
-
-void Game::useHint(Ctx& ctx) {
-  const auto hint = board_.findHint();
-  if (!hint) return;
-  hintA_ = hint->first;
-  hintB_ = hint->second;
-  hintTimer_ = 2.6f;
-  selected_ = -1;
-  ++hintsUsed_;
-  score_ = std::max(0, score_ - 50);
-  ctx.audio->play(Sfx::Hint);
-}
-
-void Game::useUndo(Ctx& ctx) {
-  const auto pair = board_.undo();
-  if (!pair) return;
-  for (int i : {pair->first, pair->second}) {
-    views_[i].appear = 1.0f;
-    views_[i].pop = 1.0f;
-  }
-  selected_ = hintA_ = hintB_ = -1;
-  combo_ = 0;
-  score_ = std::max(0, score_ - 100);
-  ctx.audio->play(Sfx::Select, 0.8f);
-  afterBoardChange(ctx);
-}
-
-void Game::useShuffle(Ctx& ctx) {
-  const bool ok = board_.shuffle(randomSeed());
-  ++shufflesUsed_;
-  selected_ = hintA_ = hintB_ = -1;
-  score_ = std::max(0, score_ - 200);
-  dealAnimation(0.0f);
-  ctx.audio->play(Sfx::Shuffle);
-  deadEnd_ = !ok;
-  afterBoardChange(ctx);
-}
-
-void Game::win(Ctx& ctx) {
-  state_ = State::Won;
-  stateTime_ = 0.0f;
-  confettiTimer_ = 0.0f;
-  stars_ = 1;
-  if (shufflesUsed_ <= 1 && hintsUsed_ <= 5) stars_ = 2;
-  if (shufflesUsed_ == 0 && hintsUsed_ <= 1) stars_ = 3;
-  score_ += std::max(0, 3000 - static_cast<int>(elapsed_) * 4);
-  if (!random_) ctx.save->record(allLayouts()[level_].id, stars_, static_cast<int>(elapsed_));
-  ctx.audio->play(Sfx::Win);
-}
-
 void Game::togglePause() {
   if (state_ == State::Playing) {
     state_ = State::Paused;
@@ -275,14 +207,6 @@ void Game::togglePause() {
     state_ = State::Playing;
   }
   stateTime_ = 0.0f;
-}
-
-bool Game::autoMove(Ctx& ctx) {
-  if (state_ != State::Playing) return false;
-  const auto hint = board_.findHint();
-  if (!hint) return false;
-  match(hint->first, hint->second, ctx);
-  return true;
 }
 
 }  // namespace nm

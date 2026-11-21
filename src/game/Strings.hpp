@@ -44,6 +44,22 @@ enum class Str {
   Resume,
   Random,
   RandomHint,
+  // Menú
+  Options, Stats, Achievements, Daily, DailyHint, DailyDone, Streak, Continue, HowToPlay, Close,
+  // Opciones
+  OptBackground, Animated, Static, OptMusicTrack, ByLevel, OptHighlight, Yes, No, OptTiles, TilesModern,
+  TilesClassic, TilesContrast, OptDifficulty, DiffEasy, DiffNormal, DiffHard, OptStyle, StyleNormal,
+  StyleTimed, StyleZen,
+  // Partida
+  TimeUp, TimeUpBody, AchievementUnlocked, Zen,
+  // Estadísticas
+  StPlayed, StWon, StWinRate, StStreak, StBestStreak, StAvgTime, StPairs, StMaxCombo, StDailyBest,
+  // Logros (título y descripción, en el mismo orden que kAchievements)
+  AchFirstT, AchFirstD, AchCleanT, AchCleanD, AchComboT, AchComboD, AchAllT, AchAllD, AchStarsT, AchStarsD,
+  AchDaily3T, AchDaily3D, AchDaily7T, AchDaily7D, AchRandomT, AchRandomD, AchTimedT, AchTimedD, AchHardT,
+  AchHardD,
+  // Tutorial
+  Tut1T, Tut1B, Tut2T, Tut2B, Tut3T, Tut3B, Tut4T, Tut4B,
   Count
 };
 
