@@ -18,7 +18,9 @@ DRAFT=()
 [ "${1:-}" = "--draft" ] && DRAFT=(--draft)
 
 [ -f "$NOTES" ] || { echo "Faltan las notas de la versión: $NOTES" >&2; exit 1; }
-[ -z "$(git status --porcelain)" ] || { echo "Hay cambios sin confirmar; haz commit antes de publicar." >&2; exit 1; }
+[ -z "$(git status --porcelain --untracked-files=no)" ] || { echo "Hay cambios sin confirmar; haz commit antes de publicar." >&2; exit 1; }
+git fetch -q origin
+[ "$(git rev-parse HEAD)" = "$(git rev-parse '@{u}')" ] || { echo "Hay commits sin subir; haz git push antes de publicar." >&2; exit 1; }
 if gh release view "$TAG" >/dev/null 2>&1; then
   echo "La versión $TAG ya está publicada." >&2; exit 1
 fi
