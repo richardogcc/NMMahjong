@@ -23,6 +23,8 @@ avanza por ocho niveles con su propio paisaje y su propia música.
 - **Ayudas** cuando las necesites: pista, deshacer y barajar.
 - **Hasta tres estrellas** por nivel y tu mejor tiempo guardado.
 - **En español y en inglés**, se cambia desde el menú.
+- **Se actualiza solo**: cuando hay una versión nueva, el menú te avisa y la
+  instala con un clic.
 
 | Menú | Combos | Nivel completado |
 |---|---|---|
@@ -53,6 +55,9 @@ pulsa *Más información* y luego *Ejecutar de todas formas*.
 y arrastra *NMMahjong* a *Aplicaciones*. La primera vez haz clic derecho sobre
 la aplicación y elige *Abrir*; si macOS la bloquea, permítela desde *Ajustes
 del Sistema → Privacidad y seguridad*.
+
+¿Quieres compilarlo tú? Las instrucciones están en
+[docs/COMPILAR.md](docs/COMPILAR.md).
 
 ## Créditos y licencia
 
@@ -86,6 +91,8 @@ way through eight levels, each with its own scenery and music.
 - **Help** when you need it: hint, undo and shuffle.
 - **Up to three stars** per level, and your best time is saved.
 - **English and Spanish**, switchable from the menu.
+- **Updates itself**: when a new version is out, the menu tells you and
+  installs it with one click.
 
 ## How to play
 
