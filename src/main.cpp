@@ -82,12 +82,12 @@ int main() {
   if (const char* frames = std::getenv("NM_CAPTURE_FRAMES")) capture.frames = std::atoi(frames);
   if (const char* forced = std::getenv("NM_LANG")) setLang(forced[0] == 'e' && forced[1] == 'n' ? Lang::En : Lang::Es);
 
+  const std::string assets = assetDir();
   Audio audio;
-  audio.init();
+  audio.init(assets);
   audio.setMusicVolume(capture.active() ? 0.0f : save.music);
   audio.setSfxVolume(capture.active() ? 0.0f : save.sfx);
 
-  const std::string assets = assetDir();
   Background background;
   background.init(assets);
   TileAtlas atlas;
@@ -142,6 +142,7 @@ int main() {
       switching = true;
     };
 
+    audio.update(ctx.dt);
     if (scene == Scene::Play) game.update(ctx);
 
     BeginDrawing();

@@ -20,8 +20,8 @@ avanza por ocho niveles con su propio paisaje y su propia música.
   Muralla, los jardines de Suzhou, la Ciudad Prohibida, las terrazas de
   arroz— con la cámara en movimiento, niebla que cruza, agua que ondula y
   pétalos que caen.
-- **Música ambiental china**: guzheng, flauta dizi y gong, distinta en cada
-  partida y con otro carácter según el nivel.
+- **Música china relajante**: piezas tranquilas de inspiración tradicional
+  que cambian con el nivel.
 - **Efectos**: destellos al emparejar, combos si encadenas parejas con
   rapidez y confeti al terminar.
 - **Ayudas** cuando las necesites: pista, deshacer y barajar.
@@ -69,8 +69,8 @@ Creado por **Richardo G. Cibea M.** © 2026. Todos los derechos reservados.
 
 NM Mahjong es software propietario: puedes descargarlo y jugar, pero no
 copiarlo, modificarlo ni redistribuirlo. Las condiciones completas están en
-[LICENSE](LICENSE) y los componentes de terceros que utiliza —incluidos los autores de las
-fotografías de fondo—, en [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+[LICENSE](LICENSE) y los componentes de terceros que utiliza —incluidos los autores de la
+música y de las fotografías de fondo—, en [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ---
 
@@ -89,8 +89,8 @@ way through eight levels, each with its own scenery and music.
 - **Animated Chinese scenery**: every level has its own photograph (the Great
   Wall, the gardens of Suzhou, the Forbidden City, rice terraces) with a
   moving camera, drifting mist, rippling water and falling petals.
-- **Chinese ambient music**: guzheng, dizi flute and gong, different every
-  time and changing mood with the level.
+- **Relaxing Chinese music**: calm, traditionally inspired pieces that change
+  with the level.
 - **Effects**: sparkles on every match, combos when you chain pairs quickly
   and confetti when you finish.
 - **Help** when you need it: hint, undo and shuffle.
@@ -130,5 +130,6 @@ Created by **Richardo G. Cibea M.** © 2026. All rights reserved.
 
 NM Mahjong is proprietary software: you may download and play it, but not copy,
 modify or redistribute it. Full terms are in [LICENSE](LICENSE); the
-third-party components it uses, including the background photographers, are
+third-party components it uses, including the music and background
+photograph authors, are
 credited in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace nm {
@@ -43,7 +44,7 @@ float noise(std::uint32_t& state) {
 
 }  // namespace
 
-void Audio::init() {
+void Audio::init(const std::string& assetDir) {
   InitAudioDevice();
   if (!IsAudioDeviceReady()) return;
 
@@ -73,11 +74,48 @@ void Audio::init() {
         return bell(t, 880.0f, 0.2f) * 0.3f + bell(t - 0.09f, 1320.0f, 0.26f) * 0.24f;
       }));
 
+  // Piezas grabadas, en orden alfabético.
+  const std::string dir = assetDir + "music";
+  if (DirectoryExists(dir.c_str())) {
+    FilePathList files = LoadDirectoryFilesEx(dir.c_str(), ".ogg", false);
+    std::vector<std::string> paths(files.paths, files.paths + files.count);
+    UnloadDirectoryFiles(files);
+    std::sort(paths.begin(), paths.end());
+    for (const std::string& path : paths) {
+      Music track = LoadMusicStream(path.c_str());
+      if (track.frameCount == 0) continue;
+      track.looping = true;
+      tracks_.push_back(track);
+    }
+  }
+
+  // Sin piezas grabadas se recurre a la música generada.
   SetAudioStreamBufferSizeDefault(2048);
   stream_ = LoadAudioStream(kRate, 32, 2);
-  SetAudioStreamCallback(stream_, music::fill);
-  PlayAudioStream(stream_);
+  if (tracks_.empty()) {
+    SetAudioStreamCallback(stream_, music::fill);
+    PlayAudioStream(stream_);
+  }
   ready_ = true;
+}
+
+void Audio::update(float dt) {
+  if (!ready_ || tracks_.empty()) return;
+  const int wanted = wanted_ % static_cast<int>(tracks_.size());
+  if (current_ != wanted) {
+    // Fundido de salida, cambio de pieza y fundido de entrada.
+    fade_ = std::max(0.0f, fade_ - dt / 1.2f);
+    if (current_ < 0 || fade_ <= 0.0f) {
+      if (current_ >= 0) StopMusicStream(tracks_[current_]);
+      current_ = wanted;
+      PlayMusicStream(tracks_[current_]);
+      fade_ = 0.0f;
+    }
+  } else {
+    fade_ = std::min(1.0f, fade_ + dt / 2.0f);
+  }
+  SetMusicVolume(tracks_[current_], musicVolume_ * fade_);
+  UpdateMusicStream(tracks_[current_]);
 }
 
 void Audio::shutdown() {
@@ -85,6 +123,8 @@ void Audio::shutdown() {
     StopAudioStream(stream_);
     UnloadAudioStream(stream_);
     for (Sound& sound : sounds_) UnloadSound(sound);
+    for (Music& track : tracks_) UnloadMusicStream(track);
+    tracks_.clear();
   }
   CloseAudioDevice();
   ready_ = false;
@@ -98,8 +138,14 @@ void Audio::play(Sfx sfx, float pitch) {
   PlaySound(sound);
 }
 
-void Audio::setMusicVolume(float volume) { music::setVolume(std::clamp(volume, 0.0f, 1.0f)); }
+void Audio::setMusicVolume(float volume) {
+  musicVolume_ = std::clamp(volume, 0.0f, 1.0f);
+  music::setVolume(musicVolume_);
+}
 void Audio::setSfxVolume(float volume) { sfxVolume_ = std::clamp(volume, 0.0f, 1.0f); }
-void Audio::setMood(int mood) { music::setMood(mood); }
+void Audio::setMood(int mood) {
+  wanted_ = std::max(mood, 0);
+  music::setMood(mood);
+}
 
 }  // namespace nm
