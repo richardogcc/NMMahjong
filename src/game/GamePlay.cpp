@@ -13,6 +13,7 @@ namespace {
 
 constexpr float kGhostTime = 0.45f;
 constexpr float kComboWindow = 5.0f;
+constexpr float kReplayStep = 0.42f;
 
 std::uint32_t randomSeed() { return static_cast<std::uint32_t>(GetRandomValue(1, 2000000000)); }
 
@@ -27,7 +28,7 @@ void Game::update(Ctx& ctx) {
 
   for (Ghost& g : ghosts_) {
     g.t += dt / kGhostTime;
-    if (g.t >= 1.0f && g.burst) {
+    if (g.t >= 1.0f && g.burst && !ctx.save->reduceFx) {
       particles_.burst(g.to, levelTheme(themeIndex_).mote, 34, 420.0f);
       particles_.burst(g.to, ui::kGold, 14, 260.0f);
     }
@@ -89,9 +90,20 @@ void Game::update(Ctx& ctx) {
     if (state_ != State::Playing) return;  // barajar puede dejar la partida sin salida
     if (ctx.click && ctx.mouse.y > 84.0f) handleClick(pick(ctx.mouse), ctx);
     else if (nav.accept && cursorActive_ && cursor_ >= 0) handleClick(cursor_, ctx);
+  } else if (state_ == State::Replay) {
+    const auto& moves = board_.solution();
+    replayTimer_ -= dt;
+    if (replayTimer_ <= 0.0f && replayStep_ < moves.size()) {
+      const auto [a, b] = moves[replayStep_];
+      flyPair(a, b, ctx);
+      if (board_.removePair(a, b)) ctx.audio->playNote(static_cast<int>(replayStep_ % 5));
+      moves_ = board_.availableMoves();
+      replayTimer_ = kReplayStep;
+      if (++replayStep_ >= moves.size()) stateTime_ = 0.0f;  // al acabar sale el panel final
+    }
   } else if (state_ == State::Won) {
     confettiTimer_ -= dt;
-    if (confettiTimer_ <= 0.0f && stateTime_ < 5.0f) {
+    if (confettiTimer_ <= 0.0f && stateTime_ < 5.0f && !ctx.save->reduceFx) {
       confettiTimer_ = 0.45f;
       particles_.confetti({static_cast<float>(GetRandomValue(250, 1350)), 900.0f}, 46);
     }
@@ -127,7 +139,7 @@ void Game::handleClick(int index, Ctx& ctx) {
     return;
   }
   if (!board_.isFree(index)) {
-    views_[index].shake = 1.0f;
+    if (!ctx.save->reduceFx) views_[index].shake = 1.0f;
     ctx.audio->play(Sfx::Error);
     return;
   }
@@ -146,13 +158,9 @@ void Game::match(int a, int b, Ctx& ctx) {
   const auto& tiles = board_.tiles();
   const Vector2 ca = faceCenter(tiles[a].pos), cb = faceCenter(tiles[b].pos);
   const Vector2 mid = {(ca.x + cb.x) * 0.5f, (ca.y + cb.y) * 0.5f};
-  const int faceA = tiles[a].face, faceB = tiles[b].face;
-  if (!board_.removePair(a, b)) return;
-
-  ghosts_.push_back({faceA, ca, mid, 0.0f, true});
-  ghosts_.push_back({faceB, cb, mid, 0.0f, false});
-  particles_.burst(ca, WHITE, 8, 160.0f);
-  particles_.burst(cb, WHITE, 8, 160.0f);
+  if (!board_.canMatch(a, b)) return;
+  flyPair(a, b, ctx);
+  board_.removePair(a, b);
 
   combo_ = comboTimer_ > 0.0f ? std::min(combo_ + 1, 9) : 1;
   comboTimer_ = kComboWindow;
@@ -177,6 +185,38 @@ void Game::match(int a, int b, Ctx& ctx) {
   selected_ = hintA_ = hintB_ = -1;
   if (cursor_ == a || cursor_ == b) cursor_ = -1;
   afterBoardChange(ctx);
+}
+
+// Las dos fichas vuelan una hacia la otra antes de desaparecer.
+void Game::flyPair(int a, int b, const Ctx& ctx) {
+  const auto& tiles = board_.tiles();
+  const Vector2 ca = faceCenter(tiles[a].pos), cb = faceCenter(tiles[b].pos);
+  const Vector2 mid = {(ca.x + cb.x) * 0.5f, (ca.y + cb.y) * 0.5f};
+  ghosts_.push_back({tiles[a].face, ca, mid, 0.0f, true});
+  ghosts_.push_back({tiles[b].face, cb, mid, 0.0f, false});
+  if (ctx.save->reduceFx) return;
+  particles_.burst(ca, WHITE, 8, 160.0f);
+  particles_.burst(cb, WHITE, 8, 160.0f);
+}
+
+void Game::startReplay(Ctx& ctx) {
+  Board fresh;
+  if (dealSeed_ == 0 || !fresh.generate(layout(), dealSeed_, dealDifficulty_)) return;
+  board_ = fresh;
+  views_.assign(board_.tiles().size(), TileView{});
+  for (TileView& v : views_) v.appear = 1.0f;
+  ghosts_.clear();
+  popups_.clear();
+  selected_ = hover_ = hintA_ = hintB_ = cursor_ = -1;
+  combo_ = 0;
+  state_ = State::Replay;
+  stateTime_ = 0.0f;
+  replayStep_ = 0;
+  replayTimer_ = 0.9f;
+  moves_ = board_.availableMoves();
+  clearSavedGame();
+  ctx.save->winStreak = 0;  // ver la solución es rendirse
+  ctx.save->store();
 }
 
 void Game::afterBoardChange(Ctx& ctx) {
@@ -254,8 +294,13 @@ void Game::win(Ctx& ctx) {
   if (kind_ == BoardKind::Level) {
     LevelRecord& rec = save.levels[allLayouts()[level_].id];
     rec.stars = std::max(rec.stars, stars_);
-    const int seconds = static_cast<int>(elapsed_);
-    if (rec.bestSeconds == 0 || seconds < rec.bestSeconds) rec.bestSeconds = seconds;
+    // En zen no hay reloj ni puntos: no cuenta para las marcas.
+    if (style_ != PlayStyle::Zen) {
+      const int seconds = static_cast<int>(elapsed_);
+      newRecord_ = (rec.bestSeconds > 0 && seconds < rec.bestSeconds) || (rec.bestScore > 0 && score_ > rec.bestScore);
+      if (rec.bestSeconds == 0 || seconds < rec.bestSeconds) rec.bestSeconds = seconds;
+      rec.bestScore = std::max(rec.bestScore, score_);
+    }
     bool all = true, perfect = true;
     for (const Layout& l : allLayouts()) {
       const auto it = save.levels.find(l.id);

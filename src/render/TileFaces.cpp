@@ -10,10 +10,19 @@ namespace nm {
 namespace {
 
 constexpr Color kNavy = {28, 52, 110, 255};
-constexpr Color kRed = {204, 44, 54, 255};
-constexpr Color kGreen = {28, 138, 84, 255};
-constexpr Color kBlue = {40, 112, 204, 255};
-constexpr Color kGold = {236, 172, 40, 255};
+// Colores de los símbolos. Cambian con el juego de fichas: el de daltonismo
+// usa una paleta que se distingue también por lo clara u oscura que es.
+Color gRed = {204, 44, 54, 255};
+Color gGreen = {28, 138, 84, 255};
+Color gBlue = {40, 112, 204, 255};
+Color gGold = {236, 172, 40, 255};
+
+void usePalette(bool colorBlind) {
+  gRed = colorBlind ? Color{213, 94, 0, 255} : Color{204, 44, 54, 255};     // bermellón
+  gGreen = colorBlind ? Color{0, 70, 130, 255} : Color{28, 138, 84, 255};   // azul oscuro
+  gBlue = colorBlind ? Color{86, 180, 233, 255} : Color{40, 112, 204, 255}; // azul cielo
+  gGold = colorBlind ? Color{240, 200, 40, 255} : Color{236, 172, 40, 255};
+}
 constexpr Color kCream = {252, 247, 233, 255};
 
 // Reparto de símbolos por filas para los números del 1 al 9.
@@ -38,15 +47,15 @@ void dot(float x, float y, float r, Color color) {
 
 void dots(int n, float cx, float cy) {
   if (n == 1) {
-    dot(cx, cy, 54.0f, kRed);
-    DrawRing({cx, cy}, 16.0f, 22.0f, 0.0f, 360.0f, 40, kGreen);
+    dot(cx, cy, 54.0f, gRed);
+    DrawRing({cx, cy}, 16.0f, 22.0f, 0.0f, 360.0f, 40, gGreen);
     return;
   }
   const int* rows = kRowsDots[n - 1];
   const int count = rowCount(rows);
   const float r = count == 3 ? 23.0f : (n == 2 ? 34.0f : 27.0f);
   const float stepY = count == 3 ? 60.0f : 82.0f;
-  const Color colors[3] = {kBlue, kRed, kGreen};
+  const Color colors[3] = {gBlue, gRed, gGreen};
   for (int row = 0; row < count; ++row) {
     const float y = cy + (row - (count - 1) * 0.5f) * stepY;
     for (int i = 0; i < rows[row]; ++i) {
@@ -67,10 +76,10 @@ void stick(float x, float y, float w, float h, Color color) {
 
 void bamboo(int n, float cx, float cy) {
   if (n == 1) {
-    stick(cx, cy + 6.0f, 30.0f, 138.0f, kGreen);
-    DrawCircleV({cx, cy - 78.0f}, 13.0f, kRed);
-    DrawEllipse(static_cast<int>(cx - 30), static_cast<int>(cy - 34), 20.0f, 8.0f, kGreen);
-    DrawEllipse(static_cast<int>(cx + 30), static_cast<int>(cy + 10), 20.0f, 8.0f, kGreen);
+    stick(cx, cy + 6.0f, 30.0f, 138.0f, gGreen);
+    DrawCircleV({cx, cy - 78.0f}, 13.0f, gRed);
+    DrawEllipse(static_cast<int>(cx - 30), static_cast<int>(cy - 34), 20.0f, 8.0f, gGreen);
+    DrawEllipse(static_cast<int>(cx + 30), static_cast<int>(cy + 10), 20.0f, 8.0f, gGreen);
     return;
   }
   const int* rows = kRowsBamboo[n - 1];
@@ -82,82 +91,82 @@ void bamboo(int n, float cx, float cy) {
     for (int i = 0; i < rows[row]; ++i) {
       const float x = cx + (i - (rows[row] - 1) * 0.5f) * 40.0f;
       const bool accent = rows[row] == 1 && count > 1;
-      stick(x, y, 19.0f, h, accent ? kRed : (row == 1 ? kBlue : kGreen));
+      stick(x, y, 19.0f, h, accent ? gRed : (row == 1 ? gBlue : gGreen));
     }
   }
 }
 
 void character(int n, float cx, float cy, const Font& font) {
-  char label[4];
+  char label[12];
   std::snprintf(label, sizeof(label), "%d", n);
   centeredText(font, label, cx, cy - 36.0f, 118.0f, kNavy);
-  DrawRectangleRounded({cx - 36.0f, cy + 38.0f, 72.0f, 50.0f}, 0.35f, 8, kRed);
+  DrawRectangleRounded({cx - 36.0f, cy + 38.0f, 72.0f, 50.0f}, 0.35f, 8, gRed);
   DrawPoly({cx, cy + 63.0f}, 4, 15.0f, 0.0f, kCream);
-  DrawPoly({cx, cy + 63.0f}, 4, 7.0f, 0.0f, kRed);
+  DrawPoly({cx, cy + 63.0f}, 4, 7.0f, 0.0f, gRed);
 }
 
 void wind(int index, float cx, float cy, const Font& font, const char* westLetter) {
   const char* letters[4] = {"N", "S", "E", westLetter};
   const float angles[4] = {-90.0f, 90.0f, 0.0f, 180.0f};  // hacia dónde apunta la flecha
   const Vector2 compass = {cx, cy - 56.0f};
-  DrawRing(compass, 24.0f, 29.0f, 0.0f, 360.0f, 40, kBlue);
-  DrawPoly(compass, 3, 17.0f, angles[index], kRed);
+  DrawRing(compass, 24.0f, 29.0f, 0.0f, 360.0f, 40, gBlue);
+  DrawPoly(compass, 3, 17.0f, angles[index], gRed);
   centeredText(font, letters[index], cx, cy + 34.0f, 122.0f, kNavy);
 }
 
 void dragon(int index, float cx, float cy) {
   if (index == 0) {  // rojo
-    DrawRectangleRoundedLinesEx({cx - 36.0f, cy - 30.0f, 72.0f, 60.0f}, 0.2f, 8, 11.0f, kRed);
-    DrawRectangleRounded({cx - 7.0f, cy - 78.0f, 14.0f, 156.0f}, 0.9f, 8, kRed);
+    DrawRectangleRoundedLinesEx({cx - 36.0f, cy - 30.0f, 72.0f, 60.0f}, 0.2f, 8, 11.0f, gRed);
+    DrawRectangleRounded({cx - 7.0f, cy - 78.0f, 14.0f, 156.0f}, 0.9f, 8, gRed);
   } else if (index == 1) {  // verde
     for (int i = 0; i < 3; ++i) {
       const float y = cy - 46.0f + i * 40.0f;
-      DrawLineEx({cx - 44.0f, y + 24.0f}, {cx, y - 10.0f}, 13.0f, kGreen);
-      DrawLineEx({cx + 44.0f, y + 24.0f}, {cx, y - 10.0f}, 13.0f, kGreen);
-      DrawCircleV({cx, y - 10.0f}, 6.5f, kGreen);
+      DrawLineEx({cx - 44.0f, y + 24.0f}, {cx, y - 10.0f}, 13.0f, gGreen);
+      DrawLineEx({cx + 44.0f, y + 24.0f}, {cx, y - 10.0f}, 13.0f, gGreen);
+      DrawCircleV({cx, y - 10.0f}, 6.5f, gGreen);
     }
-    DrawCircleV({cx, cy + 72.0f}, 9.0f, kGold);
+    DrawCircleV({cx, cy + 72.0f}, 9.0f, gGold);
   } else {  // blanco
-    DrawRectangleRoundedLinesEx({cx - 50.0f, cy - 72.0f, 100.0f, 144.0f}, 0.14f, 8, 9.0f, kBlue);
-    DrawRectangleRoundedLinesEx({cx - 31.0f, cy - 53.0f, 62.0f, 106.0f}, 0.12f, 8, 3.0f, kBlue);
+    DrawRectangleRoundedLinesEx({cx - 50.0f, cy - 72.0f, 100.0f, 144.0f}, 0.14f, 8, 9.0f, gBlue);
+    DrawRectangleRoundedLinesEx({cx - 31.0f, cy - 53.0f, 62.0f, 106.0f}, 0.12f, 8, 3.0f, gBlue);
     for (float sx : {-1.0f, 1.0f})
       for (float sy : {-1.0f, 1.0f}) DrawCircleV({cx + sx * 50.0f, cy + sy * 72.0f}, 8.0f, kNavy);
   }
 }
 
 void cornerNumber(int n, Vector2 o, const Font& font, Color color) {
-  char label[4];
+  char label[12];
   std::snprintf(label, sizeof(label), "%d", n);
   centeredText(font, label, o.x + 132.0f, o.y + 178.0f, 42.0f, color);
 }
 
 void flower(int index, float cx, float cy) {
-  const Color petals[4] = {{240, 98, 146, 255}, {245, 150, 50, 255}, {156, 96, 208, 255}, kRed};
-  DrawLineEx({cx, cy + 4.0f}, {cx - 10.0f, cy + 82.0f}, 6.0f, kGreen);
-  DrawEllipse(static_cast<int>(cx - 30), static_cast<int>(cy + 60), 18.0f, 8.0f, kGreen);
+  const Color petals[4] = {{240, 98, 146, 255}, {245, 150, 50, 255}, {156, 96, 208, 255}, gRed};
+  DrawLineEx({cx, cy + 4.0f}, {cx - 10.0f, cy + 82.0f}, 6.0f, gGreen);
+  DrawEllipse(static_cast<int>(cx - 30), static_cast<int>(cy + 60), 18.0f, 8.0f, gGreen);
   for (int i = 0; i < 5; ++i) {
     const float a = (i * 72.0f - 90.0f) * DEG2RAD;
     DrawCircleV({cx + std::cos(a) * 30.0f, cy - 16.0f + std::sin(a) * 30.0f}, 24.0f, petals[index]);
   }
-  DrawCircleV({cx, cy - 16.0f}, 16.0f, kGold);
+  DrawCircleV({cx, cy - 16.0f}, 16.0f, gGold);
   DrawCircleV({cx, cy - 16.0f}, 7.0f, kCream);
 }
 
 void season(int index, float cx, float cy) {
   const float y = cy - 14.0f;
   if (index == 0) {  // primavera: brote
-    DrawLineEx({cx, y + 70.0f}, {cx, y - 20.0f}, 8.0f, kGreen);
-    DrawEllipse(static_cast<int>(cx - 26), static_cast<int>(y - 22), 28.0f, 13.0f, kGreen);
+    DrawLineEx({cx, y + 70.0f}, {cx, y - 20.0f}, 8.0f, gGreen);
+    DrawEllipse(static_cast<int>(cx - 26), static_cast<int>(y - 22), 28.0f, 13.0f, gGreen);
     DrawEllipse(static_cast<int>(cx + 28), static_cast<int>(y + 14), 28.0f, 13.0f, {96, 180, 80, 255});
     DrawCircleV({cx, y - 44.0f}, 12.0f, {240, 98, 146, 255});
   } else if (index == 1) {  // verano: sol
     for (int i = 0; i < 12; ++i) {
       const float a = i * 30.0f * DEG2RAD;
       DrawLineEx({cx + std::cos(a) * 40.0f, y + std::sin(a) * 40.0f},
-                 {cx + std::cos(a) * 62.0f, y + std::sin(a) * 62.0f}, 7.0f, kGold);
+                 {cx + std::cos(a) * 62.0f, y + std::sin(a) * 62.0f}, 7.0f, gGold);
     }
     DrawCircleV({cx, y}, 33.0f, {245, 150, 50, 255});
-    DrawCircleV({cx, y}, 24.0f, kGold);
+    DrawCircleV({cx, y}, 24.0f, gGold);
   } else if (index == 2) {  // otoño: hoja
     DrawLineEx({cx, y + 14.0f}, {cx + 8.0f, y + 78.0f}, 6.0f, {130, 80, 40, 255});
     DrawPoly({cx, y - 6.0f}, 5, 52.0f, -90.0f, {214, 92, 36, 255});
@@ -167,11 +176,11 @@ void season(int index, float cx, float cy) {
     for (int i = 0; i < 3; ++i) {
       const float a = (i * 60.0f + 30.0f) * DEG2RAD;
       const Vector2 d = {std::cos(a) * 60.0f, std::sin(a) * 60.0f};
-      DrawLineEx({cx - d.x, y - d.y}, {cx + d.x, y + d.y}, 8.0f, kBlue);
-      for (float s : {-1.0f, 1.0f}) DrawCircleV({cx + d.x * s, y + d.y * s}, 8.0f, kBlue);
+      DrawLineEx({cx - d.x, y - d.y}, {cx + d.x, y + d.y}, 8.0f, gBlue);
+      for (float s : {-1.0f, 1.0f}) DrawCircleV({cx + d.x * s, y + d.y * s}, 8.0f, gBlue);
     }
     DrawPoly({cx, y}, 6, 17.0f, 0.0f, kCream);
-    DrawPoly({cx, y}, 6, 10.0f, 0.0f, kBlue);
+    DrawPoly({cx, y}, 6, 10.0f, 0.0f, gBlue);
   }
 }
 
@@ -187,18 +196,18 @@ bool classicFace(int face, Vector2 o, float cx, float cy, const TileStyle& style
   const Font& cjk = *style.cjk;
   if (face >= 18 && face < 27) {
     centeredText(cjk, kNumerals[face - 18], cx, cy - 46.0f, 96.0f, kInk);
-    centeredText(cjk, "萬", cx, cy + 50.0f, 96.0f, kRed);
+    centeredText(cjk, "萬", cx, cy + 50.0f, 96.0f, gRed);
   } else if (face >= 27 && face < 31) {
     centeredText(cjk, kWindsCjk[face - 27], cx, cy, 136.0f, kInk);
   } else if (face == 31) {
-    centeredText(cjk, "中", cx, cy, 140.0f, kRed);
+    centeredText(cjk, "中", cx, cy, 140.0f, gRed);
   } else if (face == 32) {
-    centeredText(cjk, "發", cx, cy, 136.0f, kGreen);
+    centeredText(cjk, "發", cx, cy, 136.0f, gGreen);
   } else if (face >= 34 && face < 38) {
-    centeredText(cjk, kFlowersCjk[face - 34], cx, cy - 8.0f, 118.0f, kRed);
+    centeredText(cjk, kFlowersCjk[face - 34], cx, cy - 8.0f, 118.0f, gRed);
     cornerNumber(face - 33, o, *style.font, kNavy);
   } else if (face >= 38) {
-    centeredText(cjk, kSeasonsCjk[face - 38], cx, cy - 8.0f, 118.0f, kGreen);
+    centeredText(cjk, kSeasonsCjk[face - 38], cx, cy - 8.0f, 118.0f, gGreen);
     cornerNumber(face - 37, o, *style.font, kNavy);
   } else {
     return false;  // círculos, bambúes y dragón blanco se dibujan igual que en el moderno
@@ -210,7 +219,7 @@ bool classicFace(int face, Vector2 o, float cx, float cy, const TileStyle& style
 void contrastFace(int face, float cx, float cy, const TileStyle& style) {
   const Font& font = *style.font;
   constexpr Color kDots = {0, 84, 200, 255}, kBams = {0, 128, 60, 255}, kChars = {200, 20, 30, 255};
-  char label[4];
+  char label[12];
   if (face < 27) {
     const int suit = face / 9, number = face % 9 + 1;
     const Color color = suit == 0 ? kDots : (suit == 1 ? kBams : kChars);
@@ -243,6 +252,7 @@ void drawTileFace(int face, Vector2 origin, const TileStyle& style) {
   const float cx = origin.x + tile::kFaceW * 0.5f;
   const float cy = origin.y + tile::kFaceH * 0.5f;
   const Font& font = *style.font;
+  usePalette(style.set == TileSet::ColorBlind);
   if (style.set == TileSet::Contrast) {
     contrastFace(face, cx, cy, style);
     return;
@@ -261,10 +271,10 @@ void drawTileFace(int face, Vector2 origin, const TileStyle& style) {
     dragon(face - 31, cx, cy);
   } else if (face < 38) {
     flower(face - 34, cx, cy);
-    cornerNumber(face - 33, origin, font, kRed);
+    cornerNumber(face - 33, origin, font, gRed);
   } else {
     season(face - 38, cx, cy);
-    cornerNumber(face - 37, origin, font, kGreen);
+    cornerNumber(face - 37, origin, font, gGreen);
   }
 }
 

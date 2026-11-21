@@ -94,12 +94,32 @@ cmake -S . -B build/windows -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPIL
 cmake --build build/windows
 ```
 
+## En Linux
+
+Con Debian o Ubuntu (en otras distribuciones los paquetes se llaman parecido):
+
+```bash
+sudo apt install build-essential cmake ninja-build git libx11-dev libxrandr-dev \
+  libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev libasound2-dev
+cmake -S . -B build/linux -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build/linux
+ctest --test-dir build/linux
+build/linux/NMMahjong
+```
+
+Hace falta CMake 3.24 o posterior. Desde un Mac o un PC con Docker,
+`scripts/build-linux.sh` hace lo mismo dentro de un contenedor de Ubuntu
+22.04, pasa las pruebas y arranca el juego sin pantalla para dejar unas
+capturas en `dist/linux-test/`.
+
 ## Paquetes y publicación
 
 | Orden | Qué hace |
 |---|---|
 | `scripts/test-windows.sh` | Arranca el `.exe` con Wine dentro de Docker y deja capturas en `dist/windows-test/`. |
-| `scripts/package.sh` | Compila ambas plataformas y deja el `.dmg` y el `.zip` en `dist/`. |
+| `scripts/build-linux.sh` | Compila y prueba la versión de Linux dentro de Docker. |
+| `scripts/package.sh` | Compila las tres plataformas y deja el `.dmg`, el `.zip` y el `.tar.gz` en `dist/` (la de Linux, solo si Docker está en marcha). |
+| `scripts/make-cjk-font.py` | Recorta la fuente china a los caracteres que usa el juego; hay que repetirlo si cambian los textos en chino. |
 | `scripts/release.sh --draft` | Publica la versión en GitHub como borrador. |
 | `scripts/release.sh` | Publica la versión en GitHub. |
 

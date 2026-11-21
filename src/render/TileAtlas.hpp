@@ -14,7 +14,7 @@ constexpr float kAspect = kFaceH / kFaceW;
 constexpr float kDepthRatio = kDepth / kFaceW;
 }  // namespace tile
 
-enum class TileSet { Modern = 0, Classic = 1, Contrast = 2 };
+enum class TileSet { Modern = 0, Classic = 1, Contrast = 2, ColorBlind = 3 };
 
 // Lo necesario para dibujar las caras de un juego de fichas.
 struct TileStyle {
@@ -22,6 +22,7 @@ struct TileStyle {
   const Font* font = nullptr;     // números y letras
   const Font* cjk = nullptr;      // caracteres chinos, para el juego clásico
   const char* westLetter = "O";   // inicial de «oeste» en el idioma actual
+  Color edge = {46, 150, 118, 255};  // color del canto: jade, salvo en temporada
 };
 
 // Dibuja el símbolo de una cara dentro del rectángulo de 160 x 210 que empieza en `origin`.

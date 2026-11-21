@@ -294,6 +294,12 @@ void Background::draw(const Theme& theme, double time, float dt, bool animated) 
         DrawCircleV(at, m.size * unit * 0.22f, Fade(theme.mote, flicker * 0.8f));
         break;
       }
+      case MoteKind::Snow: {
+        m.pos.x += (m.vel.x * 0.3f + 0.03f * sway) * dt;
+        m.pos.y += m.vel.y * 0.9f * dt;
+        DrawCircleV(at, m.size * unit * 0.34f, Fade(theme.mote, 0.8f));
+        break;
+      }
     }
     if (m.pos.x > 1.05f) m.pos.x = -0.05f;
     if (m.pos.x < -0.06f) m.pos.x = 1.04f;

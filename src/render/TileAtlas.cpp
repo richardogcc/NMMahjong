@@ -16,13 +16,13 @@ constexpr float kRound = 0.17f;
 
 unsigned char mix(int a, int b, float k) { return static_cast<unsigned char>(a + (b - a) * k); }
 
-void drawBody(Vector2 o) {
-  // Canto: marfil junto a la cara y verde jade en la base, como las fichas clásicas.
+void drawBody(Vector2 o, Color edge) {
+  // Canto: marfil junto a la cara y color (jade, normalmente) en la base.
   for (int i = static_cast<int>(tile::kDepth); i >= 1; --i) {
     const float k = i / tile::kDepth;
     Color c;
     if (i > 11) {
-      c = {mix(46, 20, k), mix(150, 92, k), mix(118, 74, k), 255};
+      c = {mix(edge.r, edge.r * 45 / 100, k), mix(edge.g, edge.g * 61 / 100, k), mix(edge.b, edge.b * 63 / 100, k), 255};
     } else {
       c = {mix(236, 205, k * 2.2f), mix(226, 190, k * 2.2f), mix(200, 160, k * 2.2f), 255};
     }
@@ -48,7 +48,7 @@ void TileAtlas::build(const TileStyle& style) {
   BeginMode2D(cam);
   for (int face = 0; face < kFaceCount; ++face) {
     const Vector2 origin = {(face % kCols) * kCellW + kPad, (face / kCols) * kCellH + kPad};
-    drawBody(origin);
+    drawBody(origin, style.edge);
     drawTileFace(face, origin, style);
   }
   EndMode2D();

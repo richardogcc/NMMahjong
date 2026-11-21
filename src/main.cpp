@@ -10,9 +10,11 @@
 #include "game/Ctx.hpp"
 #include "game/Game.hpp"
 #include "game/Menu.hpp"
+#include "game/Options.hpp"
 #include "game/Strings.hpp"
 #include "raylib.h"
 #include "rlgl.h"
+#include "ui/Ui.hpp"
 
 namespace {
 
@@ -41,7 +43,7 @@ Font loadFont(const std::string& path, int size, const char* glyphs) {
 
 const char* const kLatin =
     " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
-    "áéíóúüñÁÉÍÓÚÜÑ¿¡·©×";
+    "áéíóúüñÁÉÍÓÚÜÑ¿¡·©×àâäãçèêëîïôöõùûÀÂÄÃÇÈÊËÎÏÔÖÕÙÛß«»’";
 const char* const kChinese = "一二三四五六七八九萬東南西北中發梅蘭菊竹春夏秋冬";
 
 void saveFrame(const std::string& path) {
@@ -56,7 +58,10 @@ void saveFrame(const std::string& path) {
 //   NM_CAPTURE_LEVEL   nivel (0-11), -1 aleatorio, -2 reto diario, -3 continuar la guardada
 //   NM_CAPTURE_PERSIST usa y escribe el guardado (para probar con HOME apuntando a una carpeta de prueba)
 //   NM_CAPTURE_SUSPEND tras unas jugadas guarda la partida y cierra
-//   NM_CAPTURE_PANEL   1 opciones, 2 estadísticas, 3 logros, 4 tutorial
+//   NM_CAPTURE_PANEL   1 opciones, 2 estadísticas, 3 logros, 4 tutorial (NM_CAPTURE_TAB: pestaña de opciones)
+//   NM_CAPTURE_SOLUTION  a media partida pide ver la solución y la captura
+//   NM_SEASON          fuerza la temporada (0 ninguna, 1-4 estaciones, 5 Año Nuevo chino)
+//   NM_LARGE_TEXT, NM_REDUCE_FX  activan esas opciones
 //   NM_CAPTURE_PAUSE   captura también la pantalla de pausa (2: con las opciones abiertas)
 //   NM_CAPTURE_FRAMES  fotogramas seguidos para montar un vídeo
 //   NM_TILES, NM_STYLE, NM_DIFFICULTY  fuerzan esos ajustes
@@ -103,13 +108,24 @@ int main() {
     save = SaveData{};  // las capturas no leen ni tocan el progreso real
     save.persist = false;
     save.tutorialDone = true;
-    save.tileSet = std::clamp(envInt("NM_TILES", 0), 0, 2);
+    save.tileSet = std::clamp(envInt("NM_TILES", 0), 0, 3);
     save.playStyle = std::clamp(envInt("NM_STYLE", 0), 0, 2);
     save.difficulty = std::clamp(envInt("NM_DIFFICULTY", 0), 0, 2);
+    save.largeText = envInt("NM_LARGE_TEXT", 0) != 0;
+    save.reduceFx = envInt("NM_REDUCE_FX", 0) != 0;
     save.store();  // deja anotado que no se escribe en disco
   }
   setLang(save.lang < 0 ? systemLang() : static_cast<Lang>(save.lang));
-  if (const char* forced = std::getenv("NM_LANG")) setLang(forced[0] == 'e' && forced[1] == 'n' ? Lang::En : Lang::Es);
+  if (const char* forced = std::getenv("NM_LANG")) setLang(langFromCode(forced));
+  ui::setLargeText(save.largeText);
+  // La temporada sale de la fecha, salvo que se desactive en las opciones.
+  auto applySeason = [&]() {
+    Season now = save.seasonal ? seasonOf(todayDate()) : Season::None;
+    if (capture.active()) now = static_cast<Season>(std::clamp(envInt("NM_SEASON", 0), 0, 5));
+    setSeason(now);
+  };
+  applySeason();
+  setOptionsTab(envInt("NM_CAPTURE_TAB", 0));
 
   const std::string assets = assetDir();
   Audio audio;
@@ -123,9 +139,20 @@ int main() {
   TileAtlas atlas;
 
   Ctx ctx;
-  ctx.title = loadFont(assets + "fonts/LilitaOne-Regular.ttf", 112, kLatin);
-  ctx.ui = loadFont(assets + "fonts/Poppins-SemiBold.ttf", 64, kLatin);
+  ctx.logo = loadFont(assets + "fonts/LilitaOne-Regular.ttf", 112, kLatin);
+  const Font latinUi = loadFont(assets + "fonts/Poppins-SemiBold.ttf", 64, kLatin);
   Font cjk = loadFont(assets + "fonts/LXGWWenKaiTC-subset.ttf", 128, kChinese);
+  Font cjkUi = {};  // toda la interfaz en chino; se carga solo si hace falta
+  // En chino la interfaz usa la fuente china; en los demás idiomas, las latinas.
+  auto pickFonts = [&]() {
+    ctx.title = ctx.logo;
+    ctx.ui = latinUi;
+    if (lang() != Lang::Zh) return;
+    if (cjkUi.texture.id == 0)
+      cjkUi = loadFont(assets + "fonts/LXGWWenKaiTC-subset.ttf", 72, (std::string(kLatin) + allText(Lang::Zh)).c_str());
+    if (cjkUi.texture.id != 0) ctx.title = ctx.ui = cjkUi;
+  };
+  pickFonts();
   ctx.audio = &audio;
   ctx.save = &save;
   ctx.atlas = &atlas;
@@ -136,8 +163,9 @@ int main() {
   auto buildTiles = [&]() {
     TileStyle style;
     style.set = static_cast<TileSet>(save.tileSet);
-    style.font = &ctx.title;
+    style.font = &ctx.logo;
     style.cjk = &cjk;
+    style.edge = tileEdge();
     style.westLetter = tr(Str::West);
     atlas.build(style);
   };
@@ -207,7 +235,7 @@ int main() {
     BeginDrawing();
     ClearBackground(BLACK);
     background.draw(scene == Scene::Menu ? menuTheme() : levelTheme(game.themeIndex()), ctx.time, ctx.dt,
-                    save.animatedBg);
+                    save.animatedBg && !save.reduceFx);
     BeginMode2D(camera);
     if (scene == Scene::Menu) {
       const MenuResult result = menu.draw(ctx);
@@ -269,6 +297,10 @@ int main() {
         } else {
           saveFrame(capture.dir + "/effects.png");
           capture.stage = 3;
+          if (std::getenv("NM_CAPTURE_SOLUTION")) {
+            game.showSolution(ctx);
+            capture.stage = 40;
+          }
           if (std::getenv("NM_CAPTURE_SUSPEND")) {
             game.suspend();
             quit = true;
@@ -277,6 +309,9 @@ int main() {
       } else if (capture.stage == 3 && capture.timer > 0.03f) {
         capture.timer = 0.0f;
         if (!game.autoMove(ctx)) capture.stage = 4;  // victoria o sin movimientos
+      } else if (capture.stage == 40 && capture.timer > 5.0f) {
+        saveFrame(capture.dir + "/solution.png");
+        quit = true;
       } else if (capture.stage == 4 && capture.timer > 2.8f) {
         saveFrame(capture.dir + "/end.png");
         quit = true;
@@ -295,6 +330,8 @@ int main() {
     }
 
     if (ctx.langChanged || ctx.tilesChanged) {
+      pickFonts();
+      applySeason();
       buildTiles();
       ctx.langChanged = ctx.tilesChanged = false;
     }
@@ -305,9 +342,10 @@ int main() {
   save.store();
 
   atlas.unload();
-  UnloadFont(ctx.title);
-  UnloadFont(ctx.ui);
+  UnloadFont(ctx.logo);
+  UnloadFont(latinUi);
   if (cjk.texture.id != 0) UnloadFont(cjk);
+  if (cjkUi.texture.id != 0) UnloadFont(cjkUi);
   background.shutdown();
   audio.shutdown();
   CloseWindow();

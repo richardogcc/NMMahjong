@@ -21,9 +21,12 @@ const std::string kRepo = NM_UPDATE_REPO;
 #if defined(_WIN32)
 const char* const kAssetSuffix = "-Windows-x64.zip";
 const char* const kCurl = "curl.exe";
-#else
+#elif defined(__APPLE__)
 const char* const kAssetSuffix = "-macOS-universal.dmg";
 const char* const kCurl = "/usr/bin/curl";
+#else
+const char* const kAssetSuffix = "-Linux-x64.tar.gz";
+const char* const kCurl = "curl";
 #endif
 
 // Solo en compilaciones de depuración: NM_UPDATE_FAKE_DIR apunta a una carpeta
@@ -75,7 +78,7 @@ Install findInstall() {
   const bool plain = install.target.find_first_of("%&^!\"") == std::string::npos &&
                      proc::tempDir().find_first_of("%&^!\"") == std::string::npos;
   install.selfUpdate = !install.target.empty() && plain && proc::dirWritable(install.target);
-#else
+#elif defined(__APPLE__)
   const std::string marker = ".app/Contents/MacOS/";
   const std::size_t pos = exe.rfind(marker);
   if (pos == std::string::npos) return install;
@@ -83,6 +86,10 @@ Install findInstall() {
   // Abierta desde la imagen de disco o «translocada» por macOS no se puede sustituir.
   const bool movable = exe.rfind("/Volumes/", 0) != 0 && exe.find("/AppTranslocation/") == std::string::npos;
   install.selfUpdate = movable && proc::dirWritable(install.target.substr(0, install.target.find_last_of('/')));
+#else
+  // Linux: la carpeta donde está el ejecutable, si se puede escribir en ella.
+  install.target = exe.substr(0, exe.find_last_of('/'));
+  install.selfUpdate = !install.target.empty() && proc::dirWritable(install.target);
 #endif
   return install;
 }
@@ -163,7 +170,7 @@ void Updater::install() {
       ok = proc::run({"tar.exe", "-xf", package, "-C", staged}) == 0 &&
            fs::exists(p8(staged) / "NMMahjong" / "NMMahjong.exe", ec);
     }
-#else
+#elif defined(__APPLE__)
     const std::string package = temp + "/NMMahjong-update.dmg";
     const std::string mount = temp + "/NMMahjong-update-mount";
     // Se prepara en la carpeta temporal: junto a la app aparecería en Spotlight.
@@ -181,6 +188,16 @@ void Updater::install() {
         proc::run({"/usr/bin/hdiutil", "detach", mount, "-quiet"});
       }
       fs::remove(p8(mount), ec);
+    }
+#else
+    const std::string package = temp + "/NMMahjong-update.tar.gz";
+    staged = temp + "/NMMahjong-update";
+    ok = download(info.assetUrl, package, 900) && (info.sha256.empty() || sha256File(p8(package)) == info.sha256);
+    if (ok) {
+      fs::remove_all(p8(staged), ec);
+      fs::create_directories(p8(staged), ec);
+      ok = proc::run({"tar", "-xzf", package, "-C", staged}) == 0 &&
+           fs::exists(p8(staged) / "NMMahjong" / "NMMahjong", ec);
     }
 #endif
     fs::remove(p8(package), ec);
@@ -221,7 +238,7 @@ bool Updater::restartIntoUpdate() {
         << "(goto) 2>nul & del \"%~f0\"\r\n";
   }
   launched = proc::spawnDetached({"cmd.exe", "/d", "/c", script});
-#else
+#elif defined(__APPLE__)
   const std::string script = proc::tempDir() + "/nm-mahjong-apply-update.sh";
   {
     std::ofstream out(p8(script), std::ios::trunc);
@@ -240,6 +257,22 @@ bool Updater::restartIntoUpdate() {
            "rm -f \"$0\"\n";
   }
   launched = proc::spawnDetached({"/bin/bash", script, pidText, target, staged});
+#else
+  const std::string script = proc::tempDir() + "/nm-mahjong-apply-update.sh";
+  {
+    std::ofstream out(p8(script), std::ios::trunc);
+    out << "#!/bin/sh\n"
+           "# Espera a que el juego se cierre, copia la versión nueva encima y la abre.\n"
+           "PID=\"$1\"; DIR=\"$2\"; NEW=\"$3\"\n"
+           "while kill -0 \"$PID\" 2>/dev/null; do sleep 0.2; done\n"
+           "[ -x \"$NEW/NMMahjong/NMMahjong\" ] || exit 1\n"
+           "rm -rf \"$DIR/assets\"\n"
+           "cp -Rf \"$NEW/NMMahjong/.\" \"$DIR/\"\n"
+           "rm -rf \"$NEW\"\n"
+           "rm -f \"$0\"\n"
+           "exec \"$DIR/NMMahjong\"\n";
+  }
+  launched = proc::spawnDetached({"/bin/sh", script, pidText, target, staged});
 #endif
   if (!launched) shared_->state = State::Failed;
   return launched;

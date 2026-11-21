@@ -13,6 +13,7 @@ namespace nm {
 struct LevelRecord {
   int stars = 0;
   int bestSeconds = 0;
+  int bestScore = 0;
 };
 
 // Progreso, ajustes y estadísticas del jugador, guardados en su carpeta de datos.
@@ -26,10 +27,13 @@ struct SaveData {
   bool animatedBg = true;
   int musicTrack = -1;        // -1: la pieza que toque según el nivel
   bool highlightFree = true;  // atenuar las fichas que no se pueden usar
-  int tileSet = 0;            // 0 modernas, 1 clásicas, 2 alto contraste
+  int tileSet = 0;            // 0 modernas, 1 clásicas, 2 alto contraste, 3 daltonismo
   int difficulty = 0;         // 0 fácil, 1 normal, 2 difícil
   int playStyle = 0;          // 0 normal, 1 contrarreloj, 2 zen
   bool tutorialDone = false;
+  bool largeText = false;     // textos pequeños algo más grandes
+  bool reduceFx = false;      // sin destellos, confeti ni temblores
+  bool seasonal = true;       // el menú y las fichas cambian con la época del año
 
   // Estadísticas
   int played = 0, won = 0, winStreak = 0, bestWinStreak = 0, secondsWon = 0;
@@ -44,8 +48,6 @@ struct SaveData {
 
   void load();
   void store() const;
-  // Guarda el resultado solo si mejora el que había.
-  void record(const std::string& levelId, int stars, int seconds);
 };
 
 // Partida a medias, para poder continuarla al volver a abrir el juego.
@@ -53,6 +55,7 @@ struct SavedGame {
   int kind = 0;  // 0 nivel fijo, 1 aleatorio, 2 reto diario
   int level = 0;
   std::uint32_t layoutSeed = 0;
+  std::uint32_t dealSeed = 0;  // 0: reparto desconocido (guardados antiguos)
   int theme = 0, difficulty = 0, playStyle = 0;
   int score = 0, hintsUsed = 0, shufflesUsed = 0;
   float elapsed = 0.0f, timeLeft = 0.0f;

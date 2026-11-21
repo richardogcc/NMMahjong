@@ -108,6 +108,11 @@ and shown with a slow camera move and light mist.
 | `mariposa.jpg` | [Flores de loto](https://www.pexels.com/photo/15692311/) | [Cuong Duy](https://www.pexels.com/@cuong-duy-249813329) |
 | `cruz.jpg` | [Terrazas de arroz](https://www.pexels.com/photo/2362085/) | [Ágoston Fung](https://www.pexels.com/@agoston-fung-1165130) |
 | `templo.jpg` | [Ciudad Prohibida, Pekín](https://www.pexels.com/photo/39468928/) | [ravencrow BI](https://www.pexels.com/@biravencrow) |
+| `menu-primavera.jpg` | [Cerezos en flor junto al Palacio de Verano, Pekín](https://www.pexels.com/photo/15937142/) | [zhang kaiyv](https://www.pexels.com/@zhangkaiyv) |
+| `menu-verano.jpg` | [Pabellón en un lago entre árboles](https://www.pexels.com/photo/33003672/) | [Qing Luo](https://www.pexels.com/@luoqing) |
+| `menu-otono.jpg` | [Galería de un templo bajo ginkgos amarillos](https://www.pexels.com/photo/29758986/) | [mr. Yin](https://www.pexels.com/@mr-yin-586337898) |
+| `menu-invierno.jpg` | [Templo nevado](https://www.pexels.com/photo/30282429/) | [征宇 郑](https://www.pexels.com/@202387659) |
+| `menu-anonuevo.jpg` | [Farolillos rojos](https://www.pexels.com/photo/19938787/) | [逐光 创梦](https://www.pexels.com/@852647495) |
 
 Los archivos están en `assets/backgrounds/` y no pueden redistribuirse sueltos
 fuera del juego. · Files live in `assets/backgrounds/` and may not be
@@ -119,8 +124,8 @@ redistributed on their own outside the game.
 
 Todas bajo la SIL Open Font License 1.1; el texto completo de la licencia va
 junto a cada fuente en `assets/fonts/`. Poppins y Lilita One se distribuyen
-sin modificar; LXGW WenKai TC se ha **recortado** a los 24 caracteres que usan
-las fichas clásicas.
+sin modificar; LXGW WenKai TC se ha **recortado** a los caracteres que usan
+las fichas clásicas y los textos del juego en chino.
 
 | Fuente | Copyright | Licencia |
 |---|---|---|

@@ -22,13 +22,13 @@ constexpr int kSlots = 15;  // 12 niveles, aleatorio, reto diario y continuar
 void drawTitle(const Ctx& ctx) {
   const char* title = "NM MAHJONG";
   const float size = 108.0f;
-  float x = (kViewW - ui::textWidth(ctx.title, title, size)) * 0.5f;
+  float x = (kViewW - ui::textWidth(ctx.logo, title, size)) * 0.5f;
   for (int i = 0; title[i] != '\0'; ++i) {
     const char letter[2] = {title[i], '\0'};
-    const float bob = std::sin(static_cast<float>(ctx.time) * 1.6f + i * 0.5f) * 5.0f;
-    ui::text(ctx.title, letter, x + 4.0f, 40.0f + bob + 6.0f, size, Fade(BLACK, 0.35f));
-    ui::text(ctx.title, letter, x, 40.0f + bob, size, i < 2 ? ui::kGold : ui::kText);
-    x += ui::textWidth(ctx.title, letter, size);
+    const float bob = ctx.save->reduceFx ? 0.0f : std::sin(static_cast<float>(ctx.time) * 1.6f + i * 0.5f) * 5.0f;
+    ui::text(ctx.logo, letter, x + 4.0f, 40.0f + bob + 6.0f, size, Fade(BLACK, 0.35f));
+    ui::text(ctx.logo, letter, x, 40.0f + bob, size, i < 2 ? ui::kGold : ui::kText);
+    x += ui::textWidth(ctx.logo, letter, size);
   }
   ui::textCentered(ctx.ui, tr(Str::Subtitle), kViewW * 0.5f + 2.0f, 162.0f, 26.0f, Fade(BLACK, 0.6f));
   ui::textCentered(ctx.ui, tr(Str::Subtitle), kViewW * 0.5f, 160.0f, 26.0f, ui::kText);
@@ -88,9 +88,12 @@ bool Menu::drawLevelCard(const Ctx& ctx, int index, Rectangle card, bool unlocke
   if (auto it = ctx.save->levels.find(layout.id); it != ctx.save->levels.end()) rec = it->second;
   for (int s = 0; s < 3; ++s)
     ui::star(card.x + 26.0f + s * 24.0f, card.y + 132.0f, 10.0f, s < rec.stars ? ui::kGold : Fade(WHITE, 0.18f));
-  const char* info = rec.bestSeconds > 0
-                         ? TextFormat("%s %02d:%02d", tr(Str::Best), rec.bestSeconds / 60, rec.bestSeconds % 60)
-                         : TextFormat("%d %s", static_cast<int>(layout.slots.size()), tr(Str::Tiles));
+  // Mejores marcas del nivel: tiempo y puntos. Sin ellas, el número de fichas.
+  const char* info = TextFormat("%d %s", static_cast<int>(layout.slots.size()), tr(Str::Tiles));
+  if (rec.bestSeconds > 0 && rec.bestScore > 0)
+    info = TextFormat("%02d:%02d · %d", rec.bestSeconds / 60, rec.bestSeconds % 60, rec.bestScore);
+  else if (rec.bestSeconds > 0)
+    info = TextFormat("%s %02d:%02d", tr(Str::Best), rec.bestSeconds / 60, rec.bestSeconds % 60);
   ui::text(ctx.ui, info, card.x + kCardW - 16.0f - ui::textWidth(ctx.ui, info, 15.0f), card.y + 124.0f, 15.0f,
            ui::kMuted);
   return over && ctx.click;
@@ -110,11 +113,11 @@ bool Menu::drawSpecialCard(const Ctx& ctx, int which, Rectangle card, bool enabl
     title = tr(Str::Random);
     hint = tr(Str::RandomHint);
     for (int i = 0; i < 2; ++i) {
-      const float sway = std::sin(t * 1.4f + i * 1.6f) * 3.0f;
+      const float sway = ctx.save->reduceFx ? 0.0f : std::sin(t * 1.4f + i * 1.6f) * 3.0f;
       const Rectangle tile = {icon.x - 30.0f + i * 30.0f, icon.y - 28.0f + sway + i * 6.0f, 36.0f, 48.0f};
       DrawRectangleRounded({tile.x + 4.0f, tile.y + 4.0f, tile.width, tile.height}, 0.2f, 6, {30, 110, 86, 255});
       DrawRectangleRounded(tile, 0.2f, 6, {252, 247, 233, 255});
-      ui::textCentered(ctx.title, "?", tile.x + tile.width * 0.5f, tile.y + 8.0f, 34.0f,
+      ui::textCentered(ctx.logo, "?", tile.x + tile.width * 0.5f, tile.y + 8.0f, 34.0f,
                        i == 1 ? Color{204, 44, 54, 255} : Color{28, 52, 110, 255});
     }
   } else if (which == 1) {
@@ -125,7 +128,7 @@ bool Menu::drawSpecialCard(const Ctx& ctx, int which, Rectangle card, bool enabl
     const Rectangle page = {icon.x - 28.0f, icon.y - 30.0f, 56.0f, 60.0f};
     DrawRectangleRounded(page, 0.2f, 6, {252, 247, 233, 255});
     DrawRectangleRounded({page.x, page.y, page.width, 18.0f}, 0.5f, 6, {204, 44, 54, 255});
-    ui::textCentered(ctx.title, TextFormat("%d", todayDate() % 100), icon.x, icon.y - 8.0f, 34.0f, {28, 52, 110, 255});
+    ui::textCentered(ctx.logo, TextFormat("%d", todayDate() % 100), icon.x, icon.y - 8.0f, 34.0f, {28, 52, 110, 255});
     if (done) ui::star(page.x + page.width, page.y + 4.0f, 13.0f, ui::kGold);
     if (ctx.save->dailyStreak > 0)
       ui::text(ctx.ui, TextFormat(tr(Str::Streak), ctx.save->dailyStreak), card.x + 16.0f, card.y + 124.0f, 15.0f,

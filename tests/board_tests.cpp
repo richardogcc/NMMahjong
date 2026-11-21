@@ -10,6 +10,7 @@
 
 #include "core/Board.hpp"
 #include "core/Release.hpp"
+#include "core/Season.hpp"
 
 namespace {
 
@@ -219,7 +220,36 @@ void testSha256() {
 
 }  // namespace
 
+void testSeasons() {
+  using nm::Season;
+  CHECK(nm::seasonOf(20260415) == Season::Spring, "abril es primavera");
+  CHECK(nm::seasonOf(20260701) == Season::Summer, "julio es verano");
+  CHECK(nm::seasonOf(20261121) == Season::Autumn, "noviembre es otoño");
+  CHECK(nm::seasonOf(20261225) == Season::Winter, "diciembre es invierno");
+  CHECK(nm::seasonOf(20260213) == Season::Winter, "cuatro días antes del Año Nuevo aún es invierno");
+  CHECK(nm::seasonOf(20260214) == Season::NewYear, "tres días antes ya es Año Nuevo");
+  CHECK(nm::seasonOf(20260304) == Season::NewYear, "hasta la Fiesta de los Faroles, cruzando de mes");
+  CHECK(nm::seasonOf(20260305) == Season::Spring, "después vuelve la estación");
+  CHECK(nm::seasonOf(20280126) == Season::NewYear, "Año Nuevo de 2028");
+}
+
+// La solución que acompaña a un reparto tiene que vaciar el tablero: es la que se enseña al rendirse.
+void testSolutionReplay() {
+  for (const nm::Layout& layout : nm::allLayouts()) {
+    for (nm::Difficulty d : {nm::Difficulty::Easy, nm::Difficulty::Hard}) {
+      nm::Board first, again;
+      CHECK(first.generate(layout, 4242, d), "%s: reparto", layout.id.c_str());
+      CHECK(again.generate(layout, 4242, d), "%s: mismo reparto", layout.id.c_str());
+      bool ok = true;
+      for (const auto& [a, b] : first.solution()) ok = ok && again.removePair(a, b);
+      CHECK(ok && again.cleared(), "%s: la solución guardada resuelve el reparto regenerado", layout.id.c_str());
+    }
+  }
+}
+
 int main() {
+  testSeasons();
+  testSolutionReplay();
   testVersions();
   testReleaseParsing();
   testSha256();

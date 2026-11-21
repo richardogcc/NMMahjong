@@ -30,9 +30,26 @@ const Theme kLevels[] = {
     /* Templo: Ciudad Prohibida        */ {"templo", {0.08f, 0.02f, 0.04f}, {0.32f, 0.06f, 0.10f}, {1.00f, 0.90f, 0.75f}, 3, 1, 0.30f, MoteKind::Dust, kGoldDust},
 };
 
+// Menú de temporada, en el orden de `Season` (sin contar None).
+const Theme kSeasons[] = {
+    {"menu-primavera", {0.20f, 0.10f, 0.18f}, {0.80f, 0.50f, 0.62f}, {1.00f, 0.94f, 0.96f}, 3, 0, 0.45f, MoteKind::Petals, kPetal},
+    {"menu-verano", {0.03f, 0.14f, 0.12f}, {0.10f, 0.40f, 0.30f}, {0.95f, 1.00f, 0.88f}, 1, 0, 0.35f, MoteKind::Fireflies, {255, 240, 150, 255}},
+    {"menu-otono", {0.22f, 0.08f, 0.03f}, {0.72f, 0.36f, 0.10f}, {1.00f, 0.92f, 0.80f}, 3, 0, 0.50f, MoteKind::Leaves, {236, 140, 50, 255}},
+    {"menu-invierno", {0.06f, 0.09f, 0.16f}, {0.42f, 0.52f, 0.66f}, {0.94f, 0.97f, 1.00f}, 3, 0, 0.70f, MoteKind::Snow, {255, 255, 255, 255}},
+    {"menu-anonuevo", {0.20f, 0.02f, 0.03f}, {0.62f, 0.10f, 0.08f}, {1.00f, 0.88f, 0.66f}, 3, 0, 0.30f, MoteKind::Dust, {255, 200, 90, 255}},
+};
+constexpr Color kEdges[] = {{46, 150, 118, 255}, {214, 112, 150, 255}, {46, 150, 118, 255},
+                            {206, 120, 36, 255}, {64, 128, 196, 255},  {196, 40, 44, 255}};
+
+Season current = Season::None;
+
 }  // namespace
 
-const Theme& menuTheme() { return kMenu; }
+void setSeason(Season season) { current = season; }
+Season season() { return current; }
+Color tileEdge() { return kEdges[static_cast<int>(current)]; }
+
+const Theme& menuTheme() { return current == Season::None ? kMenu : kSeasons[static_cast<int>(current) - 1]; }
 
 const Theme& levelTheme(int levelIndex) {
   const int count = static_cast<int>(std::size(kLevels));

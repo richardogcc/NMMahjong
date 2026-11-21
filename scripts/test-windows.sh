@@ -15,7 +15,7 @@ docker info >/dev/null 2>&1 || { echo "Docker no está en marcha: abre Docker De
 OUT="dist/windows-test"
 rm -rf "$OUT"
 mkdir -p "$OUT"
-docker build -q -t nmmahjong-wine scripts/wine >/dev/null
+docker build -q --platform linux/amd64 -t nmmahjong-wine scripts/wine >/dev/null
 
 run() {  # run <subcarpeta> [VAR=valor...]
   local name="$1"; shift

@@ -9,6 +9,10 @@ constexpr Color kText = {245, 245, 250, 255};
 constexpr Color kMuted = {190, 200, 220, 255};
 constexpr Color kGold = {255, 205, 86, 255};
 
+// Con «texto grande» los textos pequeños se agrandan; `fit` da el tamaño real.
+void setLargeText(bool on);
+float fit(float size);
+
 float textWidth(const Font& font, const char* text, float size);
 void text(const Font& font, const char* str, float x, float y, float size, Color color);
 void textCentered(const Font& font, const char* str, float cx, float y, float size, Color color);

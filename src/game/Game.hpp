@@ -42,11 +42,12 @@ class Game {
   void openOptions();
   // Guarda la partida a medias para poder continuarla (al salir al menú o cerrar).
   void suspend() const;
+  void showSolution(Ctx& ctx) { startReplay(ctx); }
   // Juega sola una pareja válida (para las capturas de pantalla).
   bool autoMove(Ctx& ctx);
 
  private:
-  enum class State { Playing, Paused, Won, Stuck, TimeUp };
+  enum class State { Playing, Paused, Won, Stuck, TimeUp, Replay };
 
   struct TileView {
     float delay = 0.0f;   // cuándo empieza a caer en la animación de entrada
@@ -76,7 +77,7 @@ class Game {
   void dealAnimation(float baseDelay);
   Vector2 faceCenter(const Slot& slot) const;
   int pick(Vector2 mouse) const;
-  bool finished() const { return state_ == State::Won || state_ == State::TimeUp; }
+  bool finished() const { return state_ == State::Won || state_ == State::TimeUp || state_ == State::Replay; }
 
   // GamePlay.cpp: reglas, entrada y progreso
   void moveCursor(int dx, int dy);
@@ -87,6 +88,9 @@ class Game {
   void useUndo(Ctx& ctx);
   void useShuffle(Ctx& ctx);
   void win(Ctx& ctx);
+  // Abandona la partida y enseña, desde el principio, cómo se resolvía el reparto.
+  void startReplay(Ctx& ctx);
+  void flyPair(int a, int b, const Ctx& ctx);
   void unlock(const char* id, Ctx& ctx);
   int hintsLeft() const { return hintLimit_ < 0 ? -1 : hintLimit_ - hintsUsed_; }
   int shufflesLeft() const { return shuffleLimit_ < 0 ? -1 : shuffleLimit_ - shufflesUsed_; }
@@ -99,6 +103,7 @@ class Game {
   GameAction drawStuck(Ctx& ctx);
   GameAction drawPaused(Ctx& ctx);
   GameAction drawTimeUp(Ctx& ctx);
+  GameAction drawReplay(Ctx& ctx);
   void drawToast(const Ctx& ctx) const;
   const char* title() const;
 
@@ -112,6 +117,8 @@ class Game {
   BoardKind kind_ = BoardKind::Level;
   int level_ = 0;
   std::uint32_t layoutSeed_ = 0;  // de qué semilla salió el tablero aleatorio o diario
+  std::uint32_t dealSeed_ = 0;    // y de cuál el reparto de caras (0: no se sabe)
+  Difficulty dealDifficulty_ = Difficulty::Easy;
   Layout generated_;              // tablero aleatorio o diario
   int themeIndex_ = 0;
   Difficulty difficulty_ = Difficulty::Easy;
@@ -139,6 +146,10 @@ class Game {
   int score_ = 0, combo_ = 0, stars_ = 0, moves_ = 0;
   float comboTimer_ = 0.0f;
   int hintsUsed_ = 0, shufflesUsed_ = 0;
+  bool newRecord_ = false;  // esta victoria mejora el tiempo o los puntos del nivel
+
+  std::size_t replayStep_ = 0;  // siguiente pareja de la solución que se enseña
+  float replayTimer_ = 0.0f;
 
   std::string toast_;  // logro recién desbloqueado
   float toastTime_ = 0.0f;

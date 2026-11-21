@@ -9,7 +9,7 @@
 
 namespace nm {
 
-enum class MoteKind { Petals, Leaves, Fireflies, Dust };
+enum class MoteKind { Petals, Leaves, Fireflies, Dust, Snow };
 
 // Ambiente de un nivel: colores y estilo del fondo, y carácter de la música.
 struct Theme {

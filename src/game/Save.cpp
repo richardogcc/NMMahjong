@@ -56,7 +56,8 @@ void SaveData::load() {
       {"randomWon", &randomWon}, {"dailyDate", &dailyDate},     {"dailyStreak", &dailyStreak},
       {"bestDailyStreak", &bestDailyStreak}};
   std::map<std::string, bool*> flags = {
-      {"animatedBg", &animatedBg}, {"highlightFree", &highlightFree}, {"tutorialDone", &tutorialDone}};
+      {"animatedBg", &animatedBg}, {"highlightFree", &highlightFree}, {"tutorialDone", &tutorialDone},
+      {"largeText", &largeText},   {"reduceFx", &reduceFx},           {"seasonal", &seasonal}};
   while (std::getline(in, line)) {
     std::istringstream row(line);
     std::string key;
@@ -68,7 +69,10 @@ void SaveData::load() {
     } else if (key == "level") {
       std::string id;
       LevelRecord rec;
-      if (row >> id >> rec.stars >> rec.bestSeconds) levels[id] = rec;
+      if (row >> id >> rec.stars >> rec.bestSeconds) {
+        row >> rec.bestScore;  // no está en los guardados antiguos
+        levels[id] = rec;
+      }
     } else if (key == "achievement") {
       std::string id;
       if (row >> id && id.size() <= 32) achievements.insert(id);
@@ -82,9 +86,9 @@ void SaveData::load() {
   // El archivo lo puede haber tocado cualquiera: se acotan los valores.
   music = std::clamp(music, 0.0f, 1.0f);
   sfx = std::clamp(sfx, 0.0f, 1.0f);
-  if (lang < -1 || lang > 1) lang = -1;
+  if (lang < -1 || lang > 5) lang = -1;
   musicTrack = std::clamp(musicTrack, -1, 31);
-  tileSet = std::clamp(tileSet, 0, 2);
+  tileSet = std::clamp(tileSet, 0, 3);
   difficulty = std::clamp(difficulty, 0, 2);
   playStyle = std::clamp(playStyle, 0, 2);
   for (int* counter : {&played, &won, &winStreak, &bestWinStreak, &secondsWon, &pairs, &maxCombo, &randomWon,
@@ -93,6 +97,7 @@ void SaveData::load() {
   for (auto& [id, rec] : levels) {
     rec.stars = std::clamp(rec.stars, 0, 3);
     rec.bestSeconds = std::max(rec.bestSeconds, 0);
+    rec.bestScore = std::clamp(rec.bestScore, 0, 10000000);
   }
   gPersist = persist;
 }
@@ -104,22 +109,16 @@ void SaveData::store() const {
   out << "music " << music << "\nsfx " << sfx << "\nlang " << lang << "\n";
   out << "animatedBg " << animatedBg << "\nmusicTrack " << musicTrack << "\nhighlightFree " << highlightFree
       << "\ntileSet " << tileSet << "\ndifficulty " << difficulty << "\nplayStyle " << playStyle
-      << "\ntutorialDone " << tutorialDone << "\n";
+      << "\ntutorialDone " << tutorialDone << "\nlargeText " << largeText << "\nreduceFx " << reduceFx
+      << "\nseasonal " << seasonal << "\n";
   out << "played " << played << "\nwon " << won << "\nwinStreak " << winStreak << "\nbestWinStreak "
       << bestWinStreak << "\nsecondsWon " << secondsWon << "\npairs " << pairs << "\nmaxCombo " << maxCombo
       << "\nrandomWon " << randomWon << "\n";
   out << "dailyDate " << dailyDate << "\ndailyStreak " << dailyStreak << "\nbestDailyStreak "
       << bestDailyStreak << "\n";
   for (const auto& [id, rec] : levels)
-    out << "level " << id << " " << rec.stars << " " << rec.bestSeconds << "\n";
+    out << "level " << id << " " << rec.stars << " " << rec.bestSeconds << " " << rec.bestScore << "\n";
   for (const std::string& id : achievements) out << "achievement " << id << "\n";
-}
-
-void SaveData::record(const std::string& levelId, int stars, int seconds) {
-  LevelRecord& rec = levels[levelId];
-  rec.stars = std::max(rec.stars, stars);
-  if (rec.bestSeconds == 0 || seconds < rec.bestSeconds) rec.bestSeconds = seconds;
-  store();
 }
 
 bool loadSavedGame(SavedGame& out) {
@@ -138,6 +137,7 @@ bool loadSavedGame(SavedGame& out) {
   g.history.resize(moves);
   for (auto& [a, b] : g.history)
     if (!(in >> a >> b)) return false;
+  if (!(in >> g.dealSeed)) g.dealSeed = 0;  // añadido después; puede faltar
   g.level = std::clamp(g.level, 0, 63);
   g.theme = std::clamp(g.theme, 0, 63);
   g.difficulty = std::clamp(g.difficulty, 0, 2);
@@ -158,7 +158,7 @@ void storeSavedGame(const SavedGame& g) {
   for (std::size_t i = 0; i < g.faces.size(); ++i) out << g.faces[i] << " " << g.removed[i] << " ";
   out << "\n";
   for (const auto& [a, b] : g.history) out << a << " " << b << " ";
-  out << "\n";
+  out << "\n" << g.dealSeed << "\n";
 }
 
 void clearSavedGame() {

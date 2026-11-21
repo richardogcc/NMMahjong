@@ -18,8 +18,13 @@ avanza por doce niveles con su propio paisaje y su propia música.
 - **Tres modos**: normal, contrarreloj y zen (sin reloj ni puntos), y tres
   niveles de dificultad.
 - **Continuar**: si cierras a mitad de partida, la retomas donde estaba.
-- **Tres juegos de fichas**: modernas, clásicas con caracteres chinos y de
-  alto contraste.
+- **Cuatro juegos de fichas**: modernas, clásicas con caracteres chinos, de
+  alto contraste y para daltonismo.
+- **Accesibilidad**: texto grande, efectos reducidos y fichas libres
+  resaltadas.
+- **Temas de temporada**: el menú y el canto de las fichas cambian con la
+  primavera, el verano, el otoño, el invierno y el Año Nuevo chino.
+- **¿Atascado?** Puedes ver cómo se resolvía el reparto desde el principio.
 - **Estadísticas y logros**, y un tutorial de un minuto.
 - **Ratón, teclado o mando**.
 - **Siempre tiene solución.** Las fichas se reparten de forma que el tablero
@@ -33,8 +38,9 @@ avanza por doce niveles con su propio paisaje y su propia música.
 - **Efectos**: destellos al emparejar, combos si encadenas parejas con
   rapidez y confeti al terminar.
 - **Ayudas** cuando las necesites: pista, deshacer y barajar.
-- **Hasta tres estrellas** por nivel y tu mejor tiempo guardado.
-- **En español y en inglés**, se cambia desde el menú.
+- **Hasta tres estrellas** por nivel, con tu mejor tiempo y tu mejor
+  puntuación en cada tarjeta.
+- **En seis idiomas**: español, inglés, francés, alemán, portugués y chino.
 - **Se actualiza solo**: cuando hay una versión nueva, el menú te avisa y la
   instala con un clic.
 
@@ -68,6 +74,10 @@ y arrastra *NMMahjong* a *Aplicaciones*. La primera vez haz clic derecho sobre
 la aplicación y elige *Abrir*; si macOS la bloquea, permítela desde *Ajustes
 del Sistema → Privacidad y seguridad*.
 
+**Linux (64 bits).** Descarga el archivo `-Linux-x64.tar.gz`, descomprímelo
+y ejecuta `NMMahjong` dentro de la carpeta. Necesita un escritorio con OpenGL
+3.3; para que se actualice solo hace falta tener `curl` instalado.
+
 ¿Quieres compilarlo tú? Las instrucciones están en
 [docs/COMPILAR.md](docs/COMPILAR.md).
 
@@ -98,8 +108,12 @@ way through twelve levels, each with its own scenery and music.
 - **Three modes**: normal, time attack and zen (no clock, no score), and
   three difficulty levels.
 - **Continue**: quit mid-game and pick it up where you left off.
-- **Three tile sets**: modern, classic with Chinese characters, and high
-  contrast.
+- **Four tile sets**: modern, classic with Chinese characters, high
+  contrast and colour-blind friendly.
+- **Accessibility**: large text, reduced effects and highlighted free tiles.
+- **Seasonal themes**: the menu and the tile edges change with spring,
+  summer, autumn, winter and Chinese New Year.
+- **Stuck?** You can watch how the deal could be solved from the start.
 - **Statistics and achievements**, and a one-minute tutorial.
 - **Mouse, keyboard or gamepad**.
 - **Always solvable.** Tiles are dealt so the whole board can be cleared.
@@ -112,8 +126,10 @@ way through twelve levels, each with its own scenery and music.
 - **Effects**: sparkles on every match, combos when you chain pairs quickly
   and confetti when you finish.
 - **Help** when you need it: hint, undo and shuffle.
-- **Up to three stars** per level, and your best time is saved.
-- **English and Spanish**, switchable from the menu.
+- **Up to three stars** per level, with your best time and best score on
+  every card.
+- **Six languages**: English, Spanish, French, German, Portuguese and
+  Chinese.
 - **Updates itself**: when a new version is out, the menu tells you and
   installs it with one click.
 
@@ -141,6 +157,10 @@ Versions are published in the **Releases** section of this repository.
 drag *NMMahjong* into *Applications*. The first time, right-click the app and
 choose *Open*; if macOS blocks it, allow it in *System Settings → Privacy &
 Security*.
+
+**Linux (64-bit).** Download the `-Linux-x64.tar.gz` file, extract it and run
+`NMMahjong` inside the folder. It needs a desktop with OpenGL 3.3; automatic
+updates need `curl` installed.
 
 ## Credits and license
 

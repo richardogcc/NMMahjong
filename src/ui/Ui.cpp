@@ -6,12 +6,22 @@
 
 namespace nm::ui {
 
+namespace {
+bool largeText = false;
+}
+
+void setLargeText(bool on) { largeText = on; }
+
+// Solo crecen los textos pequeños: los títulos ya se leen bien y no hay sitio.
+float fit(float size) { return largeText && size < 27.0f ? size * 1.17f : size; }
+
 float textWidth(const Font& font, const char* str, float size) {
-  return MeasureTextEx(font, str, size, 0.0f).x;
+  return MeasureTextEx(font, str, fit(size), 0.0f).x;
 }
 
 void text(const Font& font, const char* str, float x, float y, float size, Color color) {
-  DrawTextEx(font, str, {x, y}, size, 0.0f, color);
+  const float real = fit(size);
+  DrawTextEx(font, str, {x, y - (real - size) * 0.5f}, real, 0.0f, color);
 }
 
 void textCentered(const Font& font, const char* str, float cx, float y, float size, Color color) {
@@ -26,7 +36,7 @@ float textWrapped(const Font& font, const char* str, float x, float y, float wid
     if (line.empty()) return;
     const float lineX = centered ? x + (width - textWidth(font, line.c_str(), size)) * 0.5f : x;
     text(font, line.c_str(), lineX, y + used, size, color);
-    used += size * 1.32f;
+    used += fit(size) * 1.32f;
     line.clear();
   };
   for (const char* c = str;; ++c) {
@@ -62,6 +72,9 @@ bool button(const Ctx& ctx, Rectangle rect, const char* label, bool enabled, flo
   const float alpha = enabled ? 1.0f : 0.38f;
   DrawRectangleRounded(rect, 0.4f, 10, Fade(fill, alpha * fill.a / 255.0f));
   DrawRectangleRoundedLinesEx(rect, 0.4f, 10, 2.0f, Fade(WHITE, (over ? 0.7f : 0.25f) * alpha));
+  // Si el texto no cabe (idiomas de palabras largas, texto grande), se encoge.
+  const float room = rect.width - 14.0f, wide = textWidth(ctx.ui, label, fontSize);
+  if (wide > room) fontSize *= room / wide;
   textCentered(ctx.ui, label, rect.x + rect.width * 0.5f,
                rect.y + (rect.height - fontSize) * 0.5f, fontSize, Fade(kText, alpha));
   if (over && ctx.click) {

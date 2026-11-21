@@ -27,11 +27,16 @@ fi
 
 scripts/package.sh
 
+LINUX=()
+[ -f "dist/NMMahjong-$VERSION-Linux-x64.tar.gz" ] &&
+  LINUX=("dist/NMMahjong-$VERSION-Linux-x64.tar.gz#Linux (64 bits) — NMMahjong-$VERSION-Linux-x64.tar.gz")
+
 gh release create "$TAG" \
   --title "NM Mahjong $TAG" \
   --notes-file "$NOTES" \
   --target "$(git rev-parse HEAD)" \
   ${DRAFT[@]+"${DRAFT[@]}"} \
+  ${LINUX[@]+"${LINUX[@]}"} \
   "dist/NMMahjong-$VERSION-Windows-x64.zip#Windows (64 bits) — NMMahjong-$VERSION-Windows-x64.zip" \
   "dist/NMMahjong-$VERSION-macOS-universal.dmg#macOS (Apple Silicon e Intel) — NMMahjong-$VERSION-macOS-universal.dmg" \
   "dist/NMMahjong-$VERSION-macOS-arm64.dmg#macOS — copia para actualizar desde la 0.4.0 o anterior"

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(NMMahjong VERSION 0.5.1 LANGUAGES C CXX)
+project(NMMahjong VERSION 0.6.0 LANGUAGES C CXX)
 if(WIN32)
   enable_language(RC)
 endif()
@@ -31,7 +31,8 @@ target_compile_definitions(raylib PRIVATE SUPPORT_FILEFORMAT_JPG=1)
 add_library(nmcore STATIC
   src/core/Layout.cpp
   src/core/Board.cpp
-  src/core/Release.cpp)
+  src/core/Release.cpp
+  src/core/Season.cpp)
 target_include_directories(nmcore PUBLIC src)
 
 # --- Juego ----------------------------------------------------------------
@@ -46,6 +47,9 @@ add_executable(NMMahjong MACOSX_BUNDLE WIN32
   src/ui/Ui.cpp
   src/game/Save.cpp
   src/game/Strings.cpp
+  src/game/StringsEsEn.cpp
+  src/game/StringsFrDe.cpp
+  src/game/StringsPtZh.cpp
   src/game/Themes.cpp
   src/game/Menu.cpp
   src/game/Panels.cpp
@@ -85,6 +89,11 @@ if(WIN32)
   target_sources(NMMahjong PRIVATE src/platform/windows.rc)
   set_source_files_properties(src/platform/windows.rc PROPERTIES
     COMPILE_FLAGS "-I\"${CMAKE_SOURCE_DIR}\"")
+endif()
+
+if(UNIX AND NOT APPLE)
+  # Linux: el runtime de C++ va dentro para depender solo de glibc, X11 y OpenGL.
+  target_link_options(NMMahjong PRIVATE -static-libgcc -static-libstdc++ -s)
 endif()
 
 if(MINGW)

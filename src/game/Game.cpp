@@ -39,20 +39,25 @@ void Game::start(const GameRequest& request, Ctx& ctx) {
 
   if (kind_ == BoardKind::Level) {
     themeIndex_ = level_;
-    board_.generate(allLayouts()[level_], randomSeed(), difficulty_);
+    dealSeed_ = randomSeed();
+    dealDifficulty_ = difficulty_;
+    board_.generate(allLayouts()[level_], dealSeed_, difficulty_);
   } else if (kind_ == BoardKind::Daily) {
     layoutSeed_ = dailySeed();
     generated_ = randomLayout(layoutSeed_);
     // Reparto fijo, sin depender de la dificultad elegida, para que sea igual para todos.
-    std::uint32_t deal = layoutSeed_ + 1;
-    while (!board_.generate(generated_, deal)) ++deal;
+    dealSeed_ = layoutSeed_ + 1;
+    dealDifficulty_ = Difficulty::Easy;
+    while (!board_.generate(generated_, dealSeed_)) ++dealSeed_;
     themeIndex_ = static_cast<int>(layoutSeed_ % static_cast<std::uint32_t>(levels));
   } else {
     // Tablero nuevo cada vez; se repite si alguna forma rara no admite reparto.
     do {
       layoutSeed_ = randomSeed();
       generated_ = randomLayout(layoutSeed_);
-    } while (!board_.generate(generated_, randomSeed(), difficulty_));
+      dealSeed_ = randomSeed();
+      dealDifficulty_ = difficulty_;
+    } while (!board_.generate(generated_, dealSeed_, difficulty_));
     themeIndex_ = GetRandomValue(0, levels - 1);
   }
 
@@ -73,6 +78,7 @@ bool Game::resume(Ctx& ctx) {
   kind_ = static_cast<BoardKind>(saved.kind);
   level_ = std::clamp(saved.level, 0, levels - 1);
   layoutSeed_ = saved.layoutSeed;
+  dealSeed_ = saved.dealSeed;
   if (kind_ != BoardKind::Level) generated_ = randomLayout(layoutSeed_);
   if (!board_.restore(layout(), saved.faces, saved.removed, saved.history) || board_.cleared()) {
     clearSavedGame();
@@ -81,6 +87,7 @@ bool Game::resume(Ctx& ctx) {
   themeIndex_ = saved.theme % levels;
   difficulty_ = static_cast<Difficulty>(saved.difficulty);
   style_ = static_cast<PlayStyle>(saved.playStyle);
+  dealDifficulty_ = kind_ == BoardKind::Daily ? Difficulty::Easy : difficulty_;
   resetRound(ctx);
   elapsed_ = saved.elapsed;
   timeLeft_ = saved.timeLeft;
@@ -106,6 +113,7 @@ void Game::resetRound(Ctx& ctx) {
   cursorActive_ = false;
   hintTimer_ = comboTimer_ = toastTime_ = 0.0f;
   combo_ = stars_ = 0;
+  newRecord_ = false;
   toast_.clear();
 
   const bool free = style_ == PlayStyle::Zen || difficulty_ == Difficulty::Easy;
@@ -123,6 +131,7 @@ void Game::suspend() const {
   g.kind = static_cast<int>(kind_);
   g.level = level_;
   g.layoutSeed = layoutSeed_;
+  g.dealSeed = dealSeed_;
   g.theme = themeIndex_;
   g.difficulty = static_cast<int>(difficulty_);
   g.playStyle = static_cast<int>(style_);

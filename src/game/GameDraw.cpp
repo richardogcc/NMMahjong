@@ -55,6 +55,9 @@ GameAction Game::draw(Ctx& ctx) {
   } else if (state_ == State::TimeUp) {
     const GameAction a = drawTimeUp(ctx);
     if (a != GameAction::None) action = a;
+  } else if (state_ == State::Replay) {
+    const GameAction a = drawReplay(ctx);
+    if (a != GameAction::None) action = a;
   }
   drawToast(ctx);
   // Abandonar una partida a medias corta la racha de victorias.
@@ -67,7 +70,7 @@ GameAction Game::draw(Ctx& ctx) {
 
 void Game::drawBoard(const Ctx& ctx) const {
   const auto& tiles = board_.tiles();
-  const float pulse = 0.5f + 0.5f * std::sin(static_cast<float>(ctx.time) * 7.0f);
+  const float pulse = ctx.save->reduceFx ? 0.6f : 0.5f + 0.5f * std::sin(static_cast<float>(ctx.time) * 7.0f);
 
   for (int i : order_) {
     const Tile& t = tiles[i];
@@ -110,10 +113,13 @@ void Game::drawGhosts(const Ctx& ctx) const {
     const float arc = std::sin(g.t * 3.1416f);
     const Vector2 c = {g.from.x + (g.to.x - g.from.x) * k, g.from.y + (g.to.y - g.from.y) * k - arc * 46.0f};
     const float alpha = g.t < 0.75f ? 1.0f : 1.0f - (g.t - 0.75f) / 0.25f;
-    const float spin = (g.burst ? -1.0f : 1.0f) * 14.0f * k;
-    BeginBlendMode(BLEND_ADDITIVE);
-    DrawCircleV(c, tileW_ * (0.7f + 0.5f * arc), Fade(ui::kGold, 0.18f * alpha));
-    EndBlendMode();
+    const bool calm = ctx.save->reduceFx;
+    const float spin = calm ? 0.0f : (g.burst ? -1.0f : 1.0f) * 14.0f * k;
+    if (!calm) {
+      BeginBlendMode(BLEND_ADDITIVE);
+      DrawCircleV(c, tileW_ * (0.7f + 0.5f * arc), Fade(ui::kGold, 0.18f * alpha));
+      EndBlendMode();
+    }
     ctx.atlas->draw(g.face, c, tileW_ * (1.0f + 0.28f * arc), spin,
                     Fade(WHITE, std::clamp(alpha, 0.0f, 1.0f)));
   }
@@ -185,6 +191,8 @@ GameAction Game::drawWon(Ctx& ctx) {
                      kViewW * 0.5f, 468.0f, 28.0f, ui::kText);
   if (kind_ == BoardKind::Daily)
     ui::textCentered(ctx.ui, TextFormat(tr(Str::Streak), ctx.save->dailyStreak), kViewW * 0.5f, 516.0f, 24.0f, ui::kGold);
+  else if (newRecord_)
+    ui::textCentered(ctx.title, tr(Str::NewRecord), kViewW * 0.5f, 510.0f, 34.0f, ui::kGold);
   else if (last)
     ui::textCentered(ctx.ui, tr(Str::GameComplete), kViewW * 0.5f, 516.0f, 22.0f, ui::kMuted);
 
@@ -198,16 +206,17 @@ GameAction Game::drawWon(Ctx& ctx) {
 GameAction Game::drawStuck(Ctx& ctx) {
   GameAction action = GameAction::None;
   dim();
-  ui::panel({420.0f, 270.0f, 760.0f, 330.0f}, 0.9f);
+  ui::panel({300.0f, 270.0f, 1000.0f, 330.0f}, 0.9f);
   ui::textCentered(ctx.title, tr(Str::NoMoves), kViewW * 0.5f, 304.0f, 54.0f, ui::kText);
   ui::textCentered(ctx.ui, tr(deadEnd_ ? Str::NoMovesDead : Str::NoMovesBody), kViewW * 0.5f, 392.0f, 24.0f,
                    ui::kMuted);
 
   const float y = 486.0f;
-  if (ui::button(ctx, rowButton(0, 4, y), tr(Str::Shuffle), !deadEnd_ && shufflesLeft() != 0)) useShuffle(ctx);
-  if (ui::button(ctx, rowButton(1, 4, y), tr(Str::Undo), board_.canUndo())) useUndo(ctx);
-  if (ui::button(ctx, rowButton(2, 4, y), tr(Str::Restart))) action = GameAction::Restart;
-  if (ui::button(ctx, rowButton(3, 4, y), tr(Str::Menu))) action = GameAction::Menu;
+  if (ui::button(ctx, rowButton(0, 5, y), tr(Str::Shuffle), !deadEnd_ && shufflesLeft() != 0)) useShuffle(ctx);
+  if (ui::button(ctx, rowButton(1, 5, y), tr(Str::Undo), board_.canUndo())) useUndo(ctx);
+  if (ui::button(ctx, rowButton(2, 5, y), tr(Str::ShowSolution), dealSeed_ != 0)) startReplay(ctx);
+  if (ui::button(ctx, rowButton(3, 5, y), tr(Str::Restart))) action = GameAction::Restart;
+  if (ui::button(ctx, rowButton(4, 5, y), tr(Str::Menu))) action = GameAction::Menu;
   return action;
 }
 
@@ -241,8 +250,26 @@ GameAction Game::drawTimeUp(Ctx& ctx) {
   ui::panel({470.0f, 280.0f, 660.0f, 300.0f}, 0.9f);
   ui::textCentered(ctx.title, tr(Str::TimeUp), kViewW * 0.5f, 312.0f, 56.0f, {255, 130, 130, 255});
   ui::textCentered(ctx.ui, tr(Str::TimeUpBody), kViewW * 0.5f, 400.0f, 24.0f, ui::kMuted);
-  if (ui::button(ctx, rowButton(0, 2, 476.0f), tr(Str::Retry))) action = GameAction::Restart;
-  if (ui::button(ctx, rowButton(1, 2, 476.0f), tr(Str::Menu))) action = GameAction::Menu;
+  if (ui::button(ctx, rowButton(0, 3, 476.0f), tr(Str::Retry))) action = GameAction::Restart;
+  if (ui::button(ctx, rowButton(1, 3, 476.0f), tr(Str::ShowSolution), dealSeed_ != 0)) startReplay(ctx);
+  if (ui::button(ctx, rowButton(2, 3, 476.0f), tr(Str::Menu))) action = GameAction::Menu;
+  return action;
+}
+
+GameAction Game::drawReplay(Ctx& ctx) {
+  GameAction action = GameAction::None;
+  if (replayStep_ < board_.solution().size() || stateTime_ < 1.0f) {
+    // Mientras se resuelve solo, un rótulo discreto bajo el marcador.
+    ui::textCentered(ctx.title, tr(Str::Solution), kViewW * 0.5f + 2.0f, 88.0f, 32.0f, Fade(BLACK, 0.5f));
+    ui::textCentered(ctx.title, tr(Str::Solution), kViewW * 0.5f, 86.0f, 32.0f, ui::kGold);
+    return action;
+  }
+  dim();
+  ui::panel({470.0f, 300.0f, 660.0f, 260.0f}, 0.9f);
+  ui::textCentered(ctx.title, tr(Str::Solution), kViewW * 0.5f, 330.0f, 54.0f, ui::kGold);
+  ui::textCentered(ctx.ui, tr(Str::SolutionBody), kViewW * 0.5f, 408.0f, 24.0f, ui::kMuted);
+  if (ui::button(ctx, rowButton(0, 2, 466.0f), tr(Str::Retry))) action = GameAction::Restart;
+  if (ui::button(ctx, rowButton(1, 2, 466.0f), tr(Str::Menu))) action = GameAction::Menu;
   return action;
 }
 
