@@ -17,6 +17,7 @@ uniform vec3 uC;
 uniform int uMode;
 uniform int uPhoto;
 uniform float uFog;
+uniform int uVideo;
 uniform vec2 uTexSize;
 uniform sampler2D texture0;
 
@@ -96,16 +97,17 @@ vec3 photograph(vec2 uv, vec2 p, float t) {
   vec2 top = vec2(uv.x, 1.0 - uv.y);  // origen arriba a la izquierda, como la imagen
   float screen = uRes.x / uRes.y, image = uTexSize.x / uTexSize.y;
   vec2 fit = screen > image ? vec2(1.0, image / screen) : vec2(screen / image, 1.0);
-  float zoom = 1.14 + 0.07 * sin(t * 0.11);
-  vec2 pan = vec2(sin(t * 0.083), cos(t * 0.061)) * 0.026;
+  bool still = uVideo == 0;  // una foto se anima; un vídeo ya se mueve solo
+  float zoom = still ? 1.14 + 0.07 * sin(t * 0.11) : 1.0;
+  vec2 pan = still ? vec2(sin(t * 0.083), cos(t * 0.061)) * 0.026 : vec2(0.0);
   vec2 st = (top - 0.5) * fit / zoom + 0.5 + pan;
 
   float low = smoothstep(0.5, 1.0, top.y);  // mitad inferior: agua, arena, hierba
-  if (uMode == 1) {
+  if (still && uMode == 1) {
     // Ondas que avanzan por el agua.
     float wob = noise(vec2(top.x * 6.0, top.y * 30.0 - t * 0.7));
     st += low * vec2(sin(top.y * 95.0 - t * 2.2 + wob * 6.0) * 0.0036, cos(top.x * 40.0 + t * 1.4) * 0.0018);
-  } else if (uMode == 3) {
+  } else if (still && uMode == 3) {
     // El viento mece la vegetación y la arena.
     float gust = noise(vec2(top.x * 3.0 - t * 0.5, top.y * 7.0));
     st.x += (gust - 0.5) * 0.007 * smoothstep(0.25, 1.0, top.y);
@@ -113,7 +115,9 @@ vec3 photograph(vec2 uv, vec2 p, float t) {
   vec3 col = texture(texture0, st).rgb;
   float lum = dot(col, vec3(0.3, 0.59, 0.11));
 
-  if (uMode == 0) {
+  if (!still) {
+    // El vídeo se deja tal cual.
+  } else if (uMode == 0) {
     // Aurora: el cielo respira con cortinas de luz que se desplazan.
     float sky = smoothstep(0.8, 0.15, top.y);
     float veil = fbm(vec2(top.x * 3.0 + t * 0.08, top.y * 1.4 - t * 0.1));
@@ -130,7 +134,7 @@ vec3 photograph(vec2 uv, vec2 p, float t) {
   }
 
   // Rayos de luz que entran en diagonal (solo de día).
-  if (uMode == 1 || uMode == 3) {
+  if (still && (uMode == 1 || uMode == 3)) {
     float ang = top.x * 1.4 + top.y * 0.55;
     float rays = pow(0.5 + 0.5 * sin(ang * 9.0 + t * 0.3 + fbm(vec2(ang * 3.0, t * 0.12)) * 4.0), 5.0);
     col += uC * rays * smoothstep(0.95, 0.0, top.y) * 0.09;
@@ -140,10 +144,10 @@ vec3 photograph(vec2 uv, vec2 p, float t) {
   float f1 = fbm(vec2(p.x * 1.2 + t * 0.05, p.y * 2.6 + 3.0));
   float f2 = fbm(vec2(p.x * 2.3 - t * 0.08, p.y * 4.0 - t * 0.012));
   float band = smoothstep(0.9, 0.15, abs(top.y - 0.6) * 2.1);
-  float fog = (smoothstep(0.45, 0.85, f1) * 0.6 + smoothstep(0.5, 0.9, f2) * 0.5) * uFog * (0.3 + 0.7 * band);
+  float fog = (smoothstep(0.45, 0.85, f1) * 0.6 + smoothstep(0.5, 0.9, f2) * 0.5) * uFog * (still ? 1.0 : 0.45) * (0.3 + 0.7 * band);
   col = mix(col, uC, clamp(fog, 0.0, 0.62));
 
-  if (uMode == 0 || uMode == 2) {
+  if (still && (uMode == 0 || uMode == 2)) {
     vec2 g = gl_FragCoord.xy / (uRes.y / 46.0);
     vec2 cell = floor(g);
     float seed = hash(cell);
@@ -189,6 +193,7 @@ void drawPetal(Vector2 center, float rx, float ry, float degrees, Color color) {
 
 void Background::init(const std::string& assetDir) {
   dir_ = assetDir + "backgrounds/";
+  videoDir_ = assetDir + "video/";
   Image white = GenImageColor(4, 4, WHITE);
   blank_ = LoadTextureFromImage(white);
   UnloadImage(white);
@@ -202,6 +207,7 @@ void Background::init(const std::string& assetDir) {
   locPhoto_ = GetShaderLocation(shader_, "uPhoto");
   locTexSize_ = GetShaderLocation(shader_, "uTexSize");
   locFog_ = GetShaderLocation(shader_, "uFog");
+  locVideo_ = GetShaderLocation(shader_, "uVideo");
   for (int i = 0; i < 84; ++i)
     motes_.push_back({{frand(), frand()},
                       {0.02f + frand() * 0.05f, 0.03f + frand() * 0.06f},
@@ -211,11 +217,21 @@ void Background::init(const std::string& assetDir) {
 }
 
 void Background::shutdown() {
+  videos_.clear();
   for (auto& [name, texture] : photos_)
     if (texture.id != 0) UnloadTexture(texture);
   photos_.clear();
   UnloadTexture(blank_);
   UnloadShader(shader_);
+}
+
+Video* Background::video(const char* name) {
+  const auto found = videos_.find(name);
+  if (found != videos_.end()) return found->second.get();
+  auto clip = std::make_unique<Video>();
+  const std::string path = videoDir_ + name + ".mpg";
+  if (!FileExists(path.c_str()) || !clip->open(path)) clip.reset();
+  return (videos_[name] = std::move(clip)).get();
 }
 
 const Texture2D& Background::photo(const char* name) {
@@ -245,9 +261,13 @@ void Background::draw(const Theme& theme, double time, float dt) {
   SetShaderValue(shader_, locB_, &theme.b, SHADER_UNIFORM_VEC3);
   SetShaderValue(shader_, locC_, &theme.c, SHADER_UNIFORM_VEC3);
   SetShaderValue(shader_, locMode_, &theme.mode, SHADER_UNIFORM_INT);
-  const Texture2D& image = photo(theme.photo);
+  Video* clip = video(theme.photo);
+  if (clip) clip->update(dt);
+  const int isVideo = clip && clip->ready() ? 1 : 0;
+  const Texture2D& image = isVideo ? clip->texture() : photo(theme.photo);
   const int hasPhoto = image.id != 0 ? 1 : 0;
   const Texture2D& bound = hasPhoto ? image : blank_;
+  SetShaderValue(shader_, locVideo_, &isVideo, SHADER_UNIFORM_INT);
   const float texSize[2] = {static_cast<float>(bound.width), static_cast<float>(bound.height)};
   SetShaderValue(shader_, locPhoto_, &hasPhoto, SHADER_UNIFORM_INT);
   SetShaderValue(shader_, locTexSize_, texSize, SHADER_UNIFORM_VEC2);
