@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(NMMahjong VERSION 0.5.0 LANGUAGES C CXX)
+project(NMMahjong VERSION 0.5.1 LANGUAGES C CXX)
 if(WIN32)
   enable_language(RC)
 endif()
@@ -49,6 +49,7 @@ add_executable(NMMahjong MACOSX_BUNDLE WIN32
   src/game/Themes.cpp
   src/game/Menu.cpp
   src/game/Panels.cpp
+  src/game/Options.cpp
   src/game/Game.cpp
   src/game/GameDraw.cpp
   src/game/GamePlay.cpp

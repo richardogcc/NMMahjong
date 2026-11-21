@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include "game/Game.hpp"
+#include "game/Options.hpp"
 #include "game/Strings.hpp"
 #include "ui/Ui.hpp"
 
@@ -214,13 +215,23 @@ GameAction Game::drawPaused(Ctx& ctx) {
   GameAction action = GameAction::None;
   // Velo casi opaco: con el reloj parado no se puede estudiar el tablero.
   DrawRectangle(-3000, 78, 9000, 9000, Fade({4, 6, 14, 255}, 0.93f));
-  ui::panel({470.0f, 290.0f, 660.0f, 290.0f}, 0.9f);
+  if (options_) {
+    const Rectangle box = {250.0f, 92.0f, 1100.0f, 716.0f};
+    ui::panel(box, 0.95f);
+    ui::textCentered(ctx.title, tr(Str::Options), kViewW * 0.5f, box.y + 22.0f, 46.0f, ui::kGold);
+    drawOptionsPanel(ctx, box, true);
+    const Rectangle close = {kViewW * 0.5f - 110.0f, box.y + box.height - 66.0f, 220.0f, 48.0f};
+    if (ui::button(ctx, close, tr(Str::Close))) options_ = false;
+    return action;
+  }
+  ui::panel({380.0f, 290.0f, 840.0f, 290.0f}, 0.9f);
   ui::textCentered(ctx.title, tr(Str::Paused), kViewW * 0.5f, 322.0f, 60.0f, ui::kText);
   ui::textCentered(ctx.ui, title(), kViewW * 0.5f, 404.0f, 24.0f, ui::kMuted);
   const float y = 472.0f;
-  if (ui::button(ctx, rowButton(0, 3, y), tr(Str::Resume))) togglePause();
-  if (ui::button(ctx, rowButton(1, 3, y), tr(Str::Restart))) action = GameAction::Restart;
-  if (ui::button(ctx, rowButton(2, 3, y), tr(Str::Menu))) action = GameAction::Menu;
+  if (ui::button(ctx, rowButton(0, 4, y), tr(Str::Resume))) togglePause();
+  if (ui::button(ctx, rowButton(1, 4, y), tr(Str::Options))) options_ = true;
+  if (ui::button(ctx, rowButton(2, 4, y), tr(Str::Restart))) action = GameAction::Restart;
+  if (ui::button(ctx, rowButton(3, 4, y), tr(Str::Menu))) action = GameAction::Menu;
   return action;
 }
 

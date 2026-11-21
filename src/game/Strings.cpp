@@ -137,6 +137,8 @@ constexpr Entry kTable[] = {
     {"Ayudas y teclas", "Help and keys"},
     {"Pista (H), deshacer (Z) y barajar (B). Escape pausa. Las flechas mueven el cursor y Enter elige.",
      "Hint (H), undo (Z) and shuffle (B). Escape pauses. Arrows move the cursor and Enter picks."},
+    /* OptNextGame */ {"La dificultad y el modo se aplican a partir de la próxima partida.",
+                       "Difficulty and mode apply from the next game."},
 };
 static_assert(sizeof(kTable) / sizeof(kTable[0]) == static_cast<int>(Str::Count));
 

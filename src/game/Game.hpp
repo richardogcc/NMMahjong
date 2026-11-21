@@ -36,7 +36,10 @@ class Game {
   // Qué ambiente (fondo y música) acompaña a esta partida.
   int themeIndex() const { return themeIndex_; }
   // Pausa o reanuda; no hace nada si la partida ya ha terminado.
+  // Con las opciones abiertas, solo las cierra.
   void togglePause();
+  // Pausa y muestra las opciones (para las capturas de pantalla).
+  void openOptions();
   // Guarda la partida a medias para poder continuarla (al salir al menú o cerrar).
   void suspend() const;
   // Juega sola una pareja válida (para las capturas de pantalla).
@@ -116,6 +119,7 @@ class Game {
   int hintLimit_ = -1, shuffleLimit_ = -1;  // -1: sin límite
 
   State state_ = State::Playing;
+  bool options_ = false;  // opciones abiertas sobre la pausa
   bool deadEnd_ = false;  // ni barajando queda salida
   float stateTime_ = 0.0f;
   float introTime_ = 0.0f;

@@ -60,6 +60,7 @@ enum class Str {
   AchHardD,
   // Tutorial
   Tut1T, Tut1B, Tut2T, Tut2B, Tut3T, Tut3B, Tut4T, Tut4B,
+  OptNextGame,
   Count
 };
 

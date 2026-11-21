@@ -57,7 +57,7 @@ void saveFrame(const std::string& path) {
 //   NM_CAPTURE_PERSIST usa y escribe el guardado (para probar con HOME apuntando a una carpeta de prueba)
 //   NM_CAPTURE_SUSPEND tras unas jugadas guarda la partida y cierra
 //   NM_CAPTURE_PANEL   1 opciones, 2 estadísticas, 3 logros, 4 tutorial
-//   NM_CAPTURE_PAUSE   captura también la pantalla de pausa
+//   NM_CAPTURE_PAUSE   captura también la pantalla de pausa (2: con las opciones abiertas)
 //   NM_CAPTURE_FRAMES  fotogramas seguidos para montar un vídeo
 //   NM_TILES, NM_STYLE, NM_DIFFICULTY  fuerzan esos ajustes
 struct Capture {
@@ -250,7 +250,8 @@ int main() {
         capture.stage = capture.frames > 0 ? 10 : 2;
         capture.timer = 0.0f;
         if (std::getenv("NM_CAPTURE_PAUSE")) {
-          game.togglePause();
+          if (std::atoi(std::getenv("NM_CAPTURE_PAUSE")) == 2) game.openOptions();
+          else game.togglePause();
           capture.stage = 20;
         }
       } else if (capture.stage == 20 && capture.timer > 0.4f) {

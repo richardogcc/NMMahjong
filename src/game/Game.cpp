@@ -99,6 +99,7 @@ void Game::resetRound(Ctx& ctx) {
   popups_.clear();
   particles_.clear();
   state_ = State::Playing;
+  options_ = false;
   deadEnd_ = false;
   stateTime_ = introTime_ = confettiTimer_ = 0.0f;
   selected_ = hover_ = hintA_ = hintB_ = cursor_ = -1;
@@ -199,7 +200,16 @@ int Game::pick(Vector2 mouse) const {
   return -1;
 }
 
+void Game::openOptions() {
+  if (state_ == State::Playing) togglePause();
+  options_ = state_ == State::Paused;
+}
+
 void Game::togglePause() {
+  if (options_) {
+    options_ = false;
+    return;
+  }
   if (state_ == State::Playing) {
     state_ = State::Paused;
     selected_ = hintA_ = hintB_ = -1;
