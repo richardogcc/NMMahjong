@@ -16,11 +16,10 @@ avanza por ocho niveles con su propio paisaje y su propia música.
   anterior.
 - **Siempre tiene solución.** Las fichas se reparten de forma que el tablero
   pueda despejarse entero.
-- **Paisajes de China en vídeo**: detrás de las fichas se mueve un paisaje
-  real distinto en cada nivel —la Gran Muralla, la Ciudad Prohibida, el río
-  de Guilin, terrazas de arroz— con niebla y pétalos flotando por delante.
-- **Música china relajante**: piezas tranquilas de inspiración tradicional
-  que cambian con el nivel.
+- **Paisajes de China**: cada nivel tiene su fotografía —la Gran Muralla, la
+  Ciudad Prohibida, los montes Huangshan, terrazas de arroz— con un
+  movimiento lento, algo de niebla y pétalos, pensado para no distraer.
+- **Música ambiental oriental**: piezas pausadas que cambian con el nivel.
 - **Efectos**: destellos al emparejar, combos si encadenas parejas con
   rapidez y confeti al terminar.
 - **Ayudas** cuando las necesites: pista, deshacer y barajar.
@@ -69,7 +68,7 @@ Creado por **Richardo G. Cibea M.** © 2026. Todos los derechos reservados.
 NM Mahjong es software propietario: puedes descargarlo y jugar, pero no
 copiarlo, modificarlo ni redistribuirlo. Las condiciones completas están en
 [LICENSE](LICENSE) y los componentes de terceros que utiliza —incluidos los autores de la
-música y de los vídeos de fondo—, en [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+música y de las fotografías de fondo—, en [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ---
 
@@ -85,11 +84,10 @@ way through eight levels, each with its own scenery and music.
 - **Eight levels** with different shapes, from the small *Garden* to the 144
   tiles of *Turtle* and *Temple*. Clearing a level unlocks the next one.
 - **Always solvable.** Tiles are dealt so the whole board can be cleared.
-- **Chinese scenery on video**: a real landscape plays behind the tiles,
-  different on every level (the Great Wall, the Forbidden City, the Guilin
-  river, rice terraces) with mist and petals drifting in front.
-- **Relaxing Chinese music**: calm, traditionally inspired pieces that change
-  with the level.
+- **Chinese scenery**: every level has its own photograph (the Great Wall,
+  the Forbidden City, the Huangshan mountains, rice terraces) with slow
+  motion, light mist and petals, designed not to distract.
+- **Ambient oriental music**: unhurried pieces that change with the level.
 - **Effects**: sparkles on every match, combos when you chain pairs quickly
   and confetti when you finish.
 - **Help** when you need it: hint, undo and shuffle.
@@ -130,5 +128,5 @@ Created by **Richardo G. Cibea M.** © 2026. All rights reserved.
 NM Mahjong is proprietary software: you may download and play it, but not copy,
 modify or redistribute it. Full terms are in [LICENSE](LICENSE); the
 third-party components it uses, including the music and background
-video authors, are
+photograph authors, are
 credited in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

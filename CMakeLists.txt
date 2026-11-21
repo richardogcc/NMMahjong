@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(NMMahjong VERSION 0.2.0 LANGUAGES C CXX)
+project(NMMahjong VERSION 0.3.0 LANGUAGES C CXX)
 if(WIN32)
   enable_language(RC)
 endif()
@@ -43,7 +43,6 @@ add_executable(NMMahjong MACOSX_BUNDLE WIN32
   src/render/Particles.cpp
   src/render/TileAtlas.cpp
   src/render/TileFaces.cpp
-  src/render/Video.cpp
   src/ui/Ui.cpp
   src/game/Save.cpp
   src/game/Strings.cpp
@@ -54,9 +53,6 @@ add_executable(NMMahjong MACOSX_BUNDLE WIN32
   src/update/Process.cpp
   src/update/Updater.cpp)
 target_link_libraries(NMMahjong PRIVATE nmcore raylib)
-# pl_mpeg: decodificador de vídeo de un solo archivo (MIT).
-target_include_directories(NMMahjong PRIVATE third_party/pl_mpeg)
-set_source_files_properties(src/render/Video.cpp PROPERTIES COMPILE_OPTIONS "-w")
 target_compile_definitions(NMMahjong PRIVATE
   NM_VERSION="${PROJECT_VERSION}"
   NM_UPDATE_REPO="${NM_UPDATE_REPO}")
