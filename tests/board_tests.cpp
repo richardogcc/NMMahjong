@@ -3,10 +3,13 @@
 // el proceso devuelve un código distinto de cero si hay alguno.
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>
+#include <fstream>
 #include <set>
 #include <tuple>
 
 #include "core/Board.hpp"
+#include "core/Release.hpp"
 
 namespace {
 
@@ -106,9 +109,62 @@ void testRules() {
   CHECK(!board.canUndo(), "barajar vacía el historial");
 }
 
+void testVersions() {
+  std::array<int, 3> v{};
+  CHECK(nm::parseVersion("v1.2.3", v) && v == (std::array<int, 3>{1, 2, 3}), "v1.2.3");
+  CHECK(nm::parseVersion("2", v) && v == (std::array<int, 3>{2, 0, 0}), "versión de una cifra");
+  for (const char* bad : {"", "v", "1..2", "1.2.3.4", "1.2a", "1.2.", "$(rm -rf)", "999999"})
+    CHECK(!nm::parseVersion(bad, v), "debería rechazar la versión '%s'", bad);
+  CHECK(nm::isNewerVersion("0.2.0", "0.1.9"), "0.2.0 > 0.1.9");
+  CHECK(nm::isNewerVersion("v1.0", "0.9.9"), "1.0 > 0.9.9");
+  CHECK(nm::isNewerVersion("0.10.0", "0.9.0"), "se compara por números, no por texto");
+  CHECK(!nm::isNewerVersion("0.1.0", "0.1.0"), "la misma versión no es más nueva");
+  CHECK(!nm::isNewerVersion("0.0.9", "0.1.0"), "una versión anterior no es más nueva");
+}
+
+void testReleaseParsing() {
+  const std::string sum(64, 'a');
+  const std::string json =
+      R"({"url":"https://api.github.com/x","html_url":"https://github.com/me/game/releases/tag/v0.2.0",)"
+      R"("tag_name":"v0.2.0","assets":[)"
+      R"({"name":"g.zip","uploader":{"html_url":"https://github.com/me"},"digest":"sha256:)" + std::string(64, 'b') +
+      R"(","browser_download_url":"https://github.com/me/game/releases/download/v0.2.0/G-0.2.0-Windows-x64.zip"},)"
+      R"({"name":"g.dmg","digest":"sha256:)" + sum +
+      R"(","browser_download_url":"https://github.com/me/game/releases/download/v0.2.0/G-0.2.0-macOS-arm64.dmg"}]})";
+  nm::ReleaseInfo info;
+  CHECK(nm::parseRelease(json, "me/game", "-macOS-arm64.dmg", info), "debe encontrar el paquete de macOS");
+  CHECK(info.version == "0.2.0", "versión leída: %s", info.version.c_str());
+  CHECK(info.sha256 == sum, "debe tomar la huella del paquete correcto");
+  CHECK(info.pageUrl == "https://github.com/me/game/releases/tag/v0.2.0", "página: %s", info.pageUrl.c_str());
+  CHECK(nm::parseRelease(json, "me/game", "-Windows-x64.zip", info) && info.sha256 == std::string(64, 'b'),
+        "debe encontrar el paquete de Windows con su huella");
+  CHECK(!nm::parseRelease(json, "otro/repo", "-macOS-arm64.dmg", info), "no acepta descargas de otro repositorio");
+  CHECK(!nm::parseRelease(json, "me/game", "-Linux.tar.gz", info), "sin paquete para la plataforma no hay versión");
+  CHECK(!nm::parseRelease("{\"message\":\"Not Found\"}", "me/game", ".dmg", info), "respuesta de error");
+  const std::string evil =
+      R"({"tag_name":"v9.0.0","assets":[{"browser_download_url":"https://github.com/me/game/releases/download/v9/x\";rm -rf ~;\".dmg"}]})";
+  CHECK(!nm::parseRelease(evil, "me/game", ".dmg", info), "no acepta direcciones con caracteres raros");
+  const std::string noDigest =
+      R"({"tag_name":"v1.0.0","assets":[{"digest":null,"browser_download_url":"https://github.com/me/game/releases/download/v1.0.0/a.dmg"}]})";
+  CHECK(nm::parseRelease(noDigest, "me/game", ".dmg", info) && info.sha256.empty(), "huella ausente");
+}
+
+void testSha256() {
+  const auto path = std::filesystem::temp_directory_path() / "nm-mahjong-sha-test.bin";
+  { std::ofstream(path, std::ios::binary) << "abc"; }
+  CHECK(nm::sha256File(path) == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", "SHA-256 de abc");
+  { std::ofstream(path, std::ios::binary) << std::string(1000, 'a'); }
+  CHECK(nm::sha256File(path) == "41edece42d63e8d9bf515a9ba6932e1c20cbc9f5a5d134645adb5db1b9737ea3", "SHA-256 de 1000 aes");
+  std::filesystem::remove(path);
+  CHECK(nm::sha256File(path).empty(), "un archivo que no existe no tiene huella");
+}
+
 }  // namespace
 
 int main() {
+  testVersions();
+  testReleaseParsing();
+  testSha256();
   CHECK(nm::allLayouts().size() >= 8, "se esperan al menos 8 niveles");
   CHECK(nm::matchGroup(34) == nm::matchGroup(37), "las flores emparejan entre sí");
   CHECK(nm::matchGroup(38) == nm::matchGroup(41), "las estaciones emparejan entre sí");

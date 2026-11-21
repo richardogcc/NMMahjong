@@ -52,6 +52,12 @@ constexpr Entry kTable[] = {
     /* Retry         */ {"Repetir", "Replay"},
     /* Combo         */ {"Combo", "Combo"},
     /* West          */ {"O", "W"},
+    /* UpdateAvailable   */ {"Versión %s disponible", "Version %s available"},
+    /* UpdateNow         */ {"Actualizar", "Update"},
+    /* UpdateDownloading */ {"Descargando actualización...", "Downloading update..."},
+    /* UpdateRestarting  */ {"Reiniciando...", "Restarting..."},
+    /* UpdateFailed      */ {"No se pudo actualizar", "Update failed"},
+    /* UpdateOpenPage    */ {"Abrir descargas", "Open downloads"},
 };
 static_assert(sizeof(kTable) / sizeof(kTable[0]) == static_cast<int>(Str::Count));
 

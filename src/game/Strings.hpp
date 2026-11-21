@@ -34,6 +34,12 @@ enum class Str {
   Retry,
   Combo,
   West,
+  UpdateAvailable,
+  UpdateNow,
+  UpdateDownloading,
+  UpdateRestarting,
+  UpdateFailed,
+  UpdateOpenPage,
   Count
 };
 

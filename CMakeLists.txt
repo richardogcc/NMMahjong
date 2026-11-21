@@ -9,6 +9,8 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 option(NM_BUILD_TESTS "Compila las pruebas de la lógica del juego" ON)
+# Repositorio de GitHub cuyas «releases» consulta el actualizador del juego.
+set(NM_UPDATE_REPO "richardogcc/NMMahjong" CACHE STRING "usuario/repositorio de las versiones publicadas")
 
 # --- raylib (zlib/libpng) -------------------------------------------------
 include(FetchContent)
@@ -23,7 +25,8 @@ FetchContent_MakeAvailable(raylib)
 # --- Lógica pura (sin dependencias gráficas) ------------------------------
 add_library(nmcore STATIC
   src/core/Layout.cpp
-  src/core/Board.cpp)
+  src/core/Board.cpp
+  src/core/Release.cpp)
 target_include_directories(nmcore PUBLIC src)
 
 # --- Juego ----------------------------------------------------------------
@@ -41,9 +44,13 @@ add_executable(NMMahjong MACOSX_BUNDLE WIN32
   src/game/Themes.cpp
   src/game/Menu.cpp
   src/game/Game.cpp
-  src/game/GameDraw.cpp)
+  src/game/GameDraw.cpp
+  src/update/Process.cpp
+  src/update/Updater.cpp)
 target_link_libraries(NMMahjong PRIVATE nmcore raylib)
-target_compile_definitions(NMMahjong PRIVATE NM_VERSION="${PROJECT_VERSION}")
+target_compile_definitions(NMMahjong PRIVATE
+  NM_VERSION="${PROJECT_VERSION}"
+  NM_UPDATE_REPO="${NM_UPDATE_REPO}")
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
   target_compile_options(nmcore PRIVATE -Wall -Wextra)

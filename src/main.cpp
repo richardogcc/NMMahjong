@@ -95,6 +95,9 @@ int main() {
   ctx.audio = &audio;
   ctx.save = &save;
   ctx.atlas = &atlas;
+  Updater updater;
+  ctx.updater = &updater;
+  if (!capture.active()) updater.check();
   atlas.build(ctx.title, tr(Str::West));
 
   Menu menu;
@@ -185,6 +188,13 @@ int main() {
       }
     }
     EndDrawing();
+
+#ifndef NDEBUG
+    // Ensayo de la actualización sin ratón (solo en compilaciones de depuración).
+    if (std::getenv("NM_UPDATE_AUTO") && updater.state() == Updater::State::Available) updater.install();
+#endif
+    // La versión nueva ya está preparada: se cede el paso al relevo y se cierra.
+    if (updater.state() == Updater::State::Ready && updater.restartIntoUpdate()) quit = true;
 
     if (ctx.langChanged) {
       atlas.build(ctx.title, tr(Str::West));

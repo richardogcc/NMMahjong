@@ -6,6 +6,7 @@
 #include "raylib.h"
 #include "render/Background.hpp"
 #include "render/TileAtlas.hpp"
+#include "update/Updater.hpp"
 
 namespace nm {
 
@@ -20,6 +21,7 @@ struct Ctx {
   Audio* audio = nullptr;
   SaveData* save = nullptr;
   const TileAtlas* atlas = nullptr;
+  Updater* updater = nullptr;
 
   Vector2 mouse = {};  // en coordenadas del lienzo virtual
   bool click = false;
