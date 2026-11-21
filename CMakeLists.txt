@@ -1,0 +1,82 @@
+cmake_minimum_required(VERSION 3.24)
+project(NMMahjong VERSION 0.1.0 LANGUAGES C CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+
+option(NM_BUILD_TESTS "Compila las pruebas de la lógica del juego" ON)
+
+# --- raylib (zlib/libpng) -------------------------------------------------
+include(FetchContent)
+set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+FetchContent_Declare(raylib
+  URL https://github.com/raysan5/raylib/archive/refs/tags/5.5.tar.gz
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+FetchContent_MakeAvailable(raylib)
+
+# --- Lógica pura (sin dependencias gráficas) ------------------------------
+add_library(nmcore STATIC
+  src/core/Layout.cpp
+  src/core/Board.cpp)
+target_include_directories(nmcore PUBLIC src)
+
+# --- Juego ----------------------------------------------------------------
+add_executable(NMMahjong MACOSX_BUNDLE WIN32
+  src/main.cpp
+  src/audio/Audio.cpp
+  src/audio/Music.cpp
+  src/render/Background.cpp
+  src/render/Particles.cpp
+  src/render/TileAtlas.cpp
+  src/render/TileFaces.cpp
+  src/ui/Ui.cpp
+  src/game/Save.cpp
+  src/game/Strings.cpp
+  src/game/Themes.cpp
+  src/game/Menu.cpp
+  src/game/Game.cpp
+  src/game/GameDraw.cpp)
+target_link_libraries(NMMahjong PRIVATE nmcore raylib)
+target_compile_definitions(NMMahjong PRIVATE NM_VERSION="${PROJECT_VERSION}")
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+  target_compile_options(nmcore PRIVATE -Wall -Wextra)
+  target_compile_options(NMMahjong PRIVATE -Wall -Wextra -Wno-missing-field-initializers)
+endif()
+
+if(APPLE)
+  set_target_properties(NMMahjong PROPERTIES
+    MACOSX_BUNDLE_BUNDLE_NAME "NM Mahjong"
+    MACOSX_BUNDLE_GUI_IDENTIFIER "com.richardogcm.nmmahjong"
+    MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+    MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+    MACOSX_BUNDLE_COPYRIGHT "© 2026 Richardo G. Cibea M. Todos los derechos reservados.")
+  target_link_libraries(NMMahjong PRIVATE "-framework CoreFoundation")
+  set(NM_ASSET_DEST "$<TARGET_BUNDLE_CONTENT_DIR:NMMahjong>/Resources/assets")
+else()
+  set(NM_ASSET_DEST "$<TARGET_FILE_DIR:NMMahjong>/assets")
+endif()
+
+if(MINGW)
+  # Un único .exe sin DLL de runtime que acompañar.
+  target_link_options(NMMahjong PRIVATE -static -static-libgcc -static-libstdc++ -s)
+endif()
+
+add_custom_command(TARGET NMMahjong POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          "${CMAKE_SOURCE_DIR}/assets" "${NM_ASSET_DEST}"
+  COMMENT "Copiando recursos")
+
+# --- Pruebas --------------------------------------------------------------
+if(NM_BUILD_TESTS AND NOT CMAKE_CROSSCOMPILING)
+  enable_testing()
+  add_executable(board_tests tests/board_tests.cpp)
+  target_link_libraries(board_tests PRIVATE nmcore)
+  add_test(NAME board_tests COMMAND board_tests)
+endif()
