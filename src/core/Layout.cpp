@@ -1,6 +1,9 @@
 // NM Mahjong — © 2026 Richardo G. Cibea M. Todos los derechos reservados.
 #include "core/Layout.hpp"
 
+#include <algorithm>
+#include <random>
+
 namespace nm {
 namespace {
 
@@ -116,6 +119,46 @@ const std::vector<Layout>& allLayouts() {
       {"cruz", cruz()},           {"templo", templo()},
   };
   return layouts;
+}
+
+Layout randomLayout(std::uint32_t seed) {
+  std::mt19937 rng(seed);
+  auto pick = [&rng](int lo, int hi) { return lo + static_cast<int>(rng() % static_cast<unsigned>(hi - lo + 1)); };
+  constexpr int kMaxCols = 13, kMaxRows = 7, kLayers = 5;
+
+  for (int attempt = 0; attempt < 400; ++attempt) {
+    const int cols = pick(7, kMaxCols), rows = pick(4, kMaxRows);
+    bool cell[kLayers][kMaxRows][kMaxCols] = {};
+
+    // La planta es la unión de varios rectángulos centrados; cada uno sube
+    // unas cuantas capas, estrechándose como una pirámide escalonada.
+    const int blocks = pick(2, 4);
+    for (int b = 0; b < blocks; ++b) {
+      const int inX = pick(0, (cols - 1) / 2), inY = pick(0, (rows - 1) / 2);
+      const int shiftY = pick(0, 2) == 0 ? pick(-1, 1) : 0;  // a veces se rompe la simetría vertical
+      const int height = pick(2, 4);
+      for (int z = 0; z < height; ++z) {
+        const int c0 = inX + z, c1 = cols - 1 - inX - z;
+        const int r0 = inY + z + shiftY, r1 = rows - 1 - inY - z + shiftY;
+        for (int r = std::max(r0, 0); r <= std::min(r1, rows - 1); ++r)
+          for (int c = c0; c <= c1; ++c) cell[z][r][c] = true;
+      }
+    }
+    // Ninguna ficha puede quedar en el aire.
+    for (int z = 1; z < kLayers; ++z)
+      for (int r = 0; r < rows; ++r)
+        for (int c = 0; c < cols; ++c) cell[z][r][c] = cell[z][r][c] && cell[z - 1][r][c];
+
+    Layout layout;
+    layout.id = "aleatorio";
+    for (int z = 0; z < kLayers; ++z)
+      for (int r = 0; r < rows; ++r)
+        for (int c = 0; c < cols; ++c)
+          if (cell[z][r][c]) layout.slots.push_back({2 * c, 2 * r, z});
+    if (layout.slots.size() % 2 != 0) layout.slots.pop_back();  // la última es de la capa más alta
+    if (layout.slots.size() >= 48 && layout.slots.size() <= 144) return layout;
+  }
+  return allLayouts().front();  // no debería ocurrir; un tablero conocido como reserva
 }
 
 }  // namespace nm

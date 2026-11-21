@@ -109,6 +109,19 @@ void testRules() {
   CHECK(!board.canUndo(), "barajar vacía el historial");
 }
 
+void testRandomLayouts() {
+  std::set<std::size_t> sizes;
+  for (std::uint32_t seed = 1; seed <= 300; ++seed) {
+    const nm::Layout layout = nm::randomLayout(seed);
+    CHECK(layout.slots.size() >= 48, "aleatorio %u: muy pocas fichas (%zu)", seed, layout.slots.size());
+    testLayoutShape(layout);
+    nm::Board board;
+    CHECK(board.generate(layout, seed), "aleatorio %u: no se pudo repartir", seed);
+    sizes.insert(layout.slots.size());
+  }
+  CHECK(sizes.size() >= 15, "los tableros aleatorios deberían variar más (%zu tamaños)", sizes.size());
+}
+
 void testVersions() {
   std::array<int, 3> v{};
   CHECK(nm::parseVersion("v1.2.3", v) && v == (std::array<int, 3>{1, 2, 3}), "v1.2.3");
@@ -175,6 +188,7 @@ int main() {
     std::printf("%-10s %3zu fichas\n", layout.id.c_str(), layout.slots.size());
   }
   testRules();
+  testRandomLayouts();
   std::printf(failures == 0 ? "Todas las pruebas correctas\n" : "%d fallos\n", failures);
   return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

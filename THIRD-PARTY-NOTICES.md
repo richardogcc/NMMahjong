@@ -61,23 +61,29 @@ Los textos completos acompañan al código de raylib en
 
 ## Música · Music
 
-Piezas de **PeriTune** (Sei Mutsuki), <https://peritune.com>, bajo
-[Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/).
-Se han **modificado**: volumen normalizado, fundidos de entrada y salida y
-conversión a OGG. · Tracks by **PeriTune** (Sei Mutsuki), licensed under
-CC BY 4.0. They have been **modified**: loudness normalized, fades added and
-converted to OGG.
+Todas las piezas se han **modificado**: volumen normalizado, fundidos de
+entrada y salida y conversión a OGG. Los archivos están en `assets/music/` y
+no pueden redistribuirse sueltos fuera del juego. · All tracks have been
+**modified**: loudness normalized, fades added and converted to OGG. Files
+live in `assets/music/` and may not be redistributed on their own outside the
+game.
+
+**PeriTune** (Sei Mutsuki), <https://peritune.com>, bajo
+[Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/):
 
 | Archivo | Pieza | Origen |
 |---|---|---|
 | `01-chinatown.ogg` | Chinatown (Healing) | <https://peritune.com/chinatown/> |
-| `02-lostplace.ogg` | Lost Place5 | <https://peritune.com/lost-place5/> |
-| `03-wuxia3.ogg` | Wuxia3 (Healing) | <https://peritune.com/wuxia3/> |
-| `04-minamo.ogg` | Minamo | <https://peritune.com/minamo/> |
+| `02-wuxia3.ogg` | Wuxia3 (Healing) | <https://peritune.com/wuxia3/> |
+| `04-shenxian.ogg` | Shenxian (Drumless) | <https://peritune.com/shenxian/> |
+| `05-minamo.ogg` | Minamo | <https://peritune.com/minamo/> |
 
-Los archivos están en `assets/music/` y no pueden redistribuirse sueltos
-fuera del juego. · Files live in `assets/music/` and may not be redistributed
-on their own outside the game.
+**Charlie Huang**, bajo
+[Creative Commons Attribution 2.5](https://creativecommons.org/licenses/by/2.5/):
+
+| Archivo | Pieza | Origen |
+|---|---|---|
+| `03-liushui.ogg` | 《流水》 *Liu Shui* («Agua que fluye»), guqin, grabación de 2006 | <https://commons.wikimedia.org/wiki/File:Liu_Shui.ogg> |
 
 ---
 

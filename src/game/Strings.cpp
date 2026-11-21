@@ -58,6 +58,10 @@ constexpr Entry kTable[] = {
     /* UpdateRestarting  */ {"Reiniciando...", "Restarting..."},
     /* UpdateFailed      */ {"No se pudo actualizar", "Update failed"},
     /* UpdateOpenPage    */ {"Abrir descargas", "Open downloads"},
+    /* Paused            */ {"Pausa", "Paused"},
+    /* Resume            */ {"Continuar", "Resume"},
+    /* Random            */ {"Aleatorio", "Random"},
+    /* RandomHint        */ {"Un tablero distinto cada vez", "A different board every time"},
 };
 static_assert(sizeof(kTable) / sizeof(kTable[0]) == static_cast<int>(Str::Count));
 

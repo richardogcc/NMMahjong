@@ -11,9 +11,10 @@
 namespace nm {
 namespace {
 
-constexpr float kCardW = 330.0f;
+constexpr float kCardW = 262.0f;
 constexpr float kCardH = 230.0f;
-constexpr float kGap = 30.0f;
+constexpr float kGap = 25.0f;
+constexpr int kColumns = 5;
 
 void drawTitle(const Ctx& ctx) {
   const char* title = "NM MAHJONG";
@@ -67,25 +68,47 @@ bool drawCard(const Ctx& ctx, int index, Rectangle card, bool unlocked) {
   if (over) DrawRectangleRoundedLinesEx(card, 0.12f, 12, 3.0f, Fade(ui::kGold, 0.9f));
 
   drawPreview(layout, {card.x + 30.0f, card.y + 16.0f, kCardW - 60.0f, 116.0f}, unlocked ? 1.0f : 0.28f);
-  ui::text(ctx.title, TextFormat("%d · %s", index + 1, levelName(index)), card.x + 22.0f,
-           card.y + 142.0f, 32.0f, unlocked ? ui::kText : Fade(ui::kText, 0.5f));
+  ui::text(ctx.title, TextFormat("%d · %s", index + 1, levelName(index)), card.x + 20.0f,
+           card.y + 142.0f, 30.0f, unlocked ? ui::kText : Fade(ui::kText, 0.5f));
 
   if (!unlocked) {
     drawLock(card.x + kCardW * 0.5f, card.y + 70.0f);
-    ui::text(ctx.ui, tr(Str::Locked), card.x + 22.0f, card.y + 190.0f, 18.0f, Fade(ui::kMuted, 0.8f));
+    ui::text(ctx.ui, tr(Str::Locked), card.x + 20.0f, card.y + 192.0f, 15.5f, Fade(ui::kMuted, 0.8f));
     return false;
   }
 
   LevelRecord rec;
   if (auto it = ctx.save->levels.find(layout.id); it != ctx.save->levels.end()) rec = it->second;
   for (int s = 0; s < 3; ++s)
-    ui::star(card.x + 36.0f + s * 32.0f, card.y + 200.0f, 14.0f,
+    ui::star(card.x + 32.0f + s * 28.0f, card.y + 200.0f, 12.0f,
              s < rec.stars ? ui::kGold : Fade(WHITE, 0.18f));
   const char* info = rec.bestSeconds > 0
                          ? TextFormat("%s %02d:%02d", tr(Str::Best), rec.bestSeconds / 60, rec.bestSeconds % 60)
                          : TextFormat("%d %s", static_cast<int>(layout.slots.size()), tr(Str::Tiles));
-  ui::text(ctx.ui, info, card.x + kCardW - 22.0f - ui::textWidth(ctx.ui, info, 19.0f),
-           card.y + 190.0f, 19.0f, ui::kMuted);
+  ui::text(ctx.ui, info, card.x + kCardW - 18.0f - ui::textWidth(ctx.ui, info, 17.0f),
+           card.y + 191.0f, 17.0f, ui::kMuted);
+  return over && ctx.click;
+}
+
+// Tarjeta del modo aleatorio: ocupa dos columnas. Devuelve true si se pulsa.
+bool drawRandomCard(const Ctx& ctx, Rectangle card) {
+  const bool over = ui::hovered(ctx, card);
+  if (over) card.y -= 6.0f;
+  ui::panel(card, over ? 0.86f : 0.66f);
+  DrawRectangleRoundedLinesEx(card, 0.12f, 12, 3.0f, Fade(ui::kGold, over ? 0.9f : 0.35f));
+
+  // Tres fichas con interrogante que se balancean.
+  for (int i = 0; i < 3; ++i) {
+    const float sway = std::sin(static_cast<float>(ctx.time) * 1.4f + i * 1.3f) * 5.0f;
+    const Rectangle tile = {card.x + 46.0f + i * 62.0f, card.y + 40.0f + sway, 52.0f, 68.0f};
+    DrawRectangleRounded({tile.x + 5.0f, tile.y + 5.0f, tile.width, tile.height}, 0.2f, 6, {30, 110, 86, 255});
+    DrawRectangleRounded(tile, 0.2f, 6, {252, 247, 233, 255});
+    ui::textCentered(ctx.title, "?", tile.x + tile.width * 0.5f, tile.y + 12.0f, 46.0f,
+                     i == 1 ? Color{204, 44, 54, 255} : Color{28, 52, 110, 255});
+  }
+  ui::text(ctx.title, tr(Str::Random), card.x + 250.0f, card.y + 46.0f, 46.0f, ui::kGold);
+  ui::text(ctx.ui, tr(Str::RandomHint), card.x + 252.0f, card.y + 104.0f, 19.0f, ui::kText);
+  ui::text(ctx.ui, TextFormat("48 - 144 %s", tr(Str::Tiles)), card.x + 22.0f, card.y + 190.0f, 17.0f, ui::kMuted);
   return over && ctx.click;
 }
 
@@ -139,16 +162,23 @@ MenuResult Menu::draw(Ctx& ctx) {
   drawUpdate(ctx);
 
   const auto& layouts = allLayouts();
-  const float x0 = (kViewW - (4.0f * kCardW + 3.0f * kGap)) * 0.5f;
+  const float x0 = (kViewW - (kColumns * kCardW + (kColumns - 1) * kGap)) * 0.5f;
   bool previousCleared = true;
   for (int i = 0; i < static_cast<int>(layouts.size()) && i < 8; ++i) {
-    const Rectangle card = {x0 + (i % 4) * (kCardW + kGap), 224.0f + (i / 4) * (kCardH + 26.0f), kCardW, kCardH};
+    const Rectangle card = {x0 + (i % kColumns) * (kCardW + kGap), 224.0f + (i / kColumns) * (kCardH + 26.0f), kCardW,
+                            kCardH};
     if (drawCard(ctx, i, card, previousCleared)) {
       ctx.audio->play(Sfx::Select);
       result = {MenuResult::Kind::Play, i};
     }
     const auto it = ctx.save->levels.find(layouts[i].id);
     previousCleared = it != ctx.save->levels.end() && it->second.stars > 0;
+  }
+
+  // El modo aleatorio ocupa los dos huecos que quedan en la segunda fila.
+  if (drawRandomCard(ctx, {x0 + 3.0f * (kCardW + kGap), 224.0f + kCardH + 26.0f, 2.0f * kCardW + kGap, kCardH})) {
+    ctx.audio->play(Sfx::Select);
+    result = {MenuResult::Kind::Play, -1};
   }
 
   // Barra de ajustes.

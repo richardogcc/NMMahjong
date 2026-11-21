@@ -40,6 +40,10 @@ enum class Str {
   UpdateRestarting,
   UpdateFailed,
   UpdateOpenPage,
+  Paused,
+  Resume,
+  Random,
+  RandomHint,
   Count
 };
 

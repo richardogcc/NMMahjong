@@ -19,7 +19,9 @@ avanza por ocho niveles con su propio paisaje y su propia música.
 - **Paisajes de China**: cada nivel tiene su fotografía —la Gran Muralla, la
   Ciudad Prohibida, los montes Huangshan, terrazas de arroz— con un
   movimiento lento, algo de niebla y pétalos, pensado para no distraer.
-- **Música ambiental oriental**: piezas pausadas que cambian con el nivel.
+- **Música china pausada**, con una grabación real de guqin entre las
+  piezas, que cambia con el nivel.
+- **Modo aleatorio**: un tablero inventado y distinto en cada partida.
 - **Efectos**: destellos al emparejar, combos si encadenas parejas con
   rapidez y confeti al terminar.
 - **Ayudas** cuando las necesites: pista, deshacer y barajar.
@@ -43,7 +45,7 @@ avanza por ocho niveles con su propio paisaje y su propia música.
 4. Ganas al retirar todas las fichas.
 
 Si te quedas sin movimientos puedes barajar las fichas que quedan o deshacer
-tus últimas jugadas. Cuantas menos ayudas uses, más estrellas consigues.
+tus últimas jugadas. Con **Escape** pausas la partida. Cuantas menos ayudas uses, más estrellas consigues.
 
 ## Descarga e instalación
 
@@ -87,7 +89,9 @@ way through eight levels, each with its own scenery and music.
 - **Chinese scenery**: every level has its own photograph (the Great Wall,
   the Forbidden City, the Huangshan mountains, rice terraces) with slow
   motion, light mist and petals, designed not to distract.
-- **Ambient oriental music**: unhurried pieces that change with the level.
+- **Unhurried Chinese music**, including a real guqin recording, that
+  changes with the level.
+- **Random mode**: a made-up, different board every game.
 - **Effects**: sparkles on every match, combos when you chain pairs quickly
   and confetti when you finish.
 - **Help** when you need it: hint, undo and shuffle.
@@ -106,7 +110,7 @@ way through eight levels, each with its own scenery and music.
 4. You win by removing every tile.
 
 If you run out of moves you can shuffle the remaining tiles or undo your last
-moves. The less help you use, the more stars you earn.
+moves. Press **Escape** to pause. The less help you use, the more stars you earn.
 
 ## Download and install
 

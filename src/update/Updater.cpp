@@ -166,7 +166,8 @@ void Updater::install() {
 #else
     const std::string package = temp + "/NMMahjong-update.dmg";
     const std::string mount = temp + "/NMMahjong-update-mount";
-    staged = install.target + ".new";
+    // Se prepara en la carpeta temporal: junto a la app aparecería en Spotlight.
+    staged = temp + "/NMMahjong-update.app";
     ok = download(info.assetUrl, package, 900) && (info.sha256.empty() || sha256File(p8(package)) == info.sha256);
     if (ok) {
       fs::create_directories(p8(mount), ec);
@@ -226,14 +227,14 @@ bool Updater::restartIntoUpdate() {
     std::ofstream out(p8(script), std::ios::trunc);
     out << "#!/bin/bash\n"
            "# Espera a que el juego se cierre, pone la versión nueva en su sitio y la abre.\n"
-           "PID=\"$1\"; APP=\"$2\"; NEW=\"$3\"\n"
+           "PID=\"$1\"; APP=\"$2\"; NEW=\"$3\"; OLD=\"$(dirname \"$3\")/NMMahjong-old.app\"\n"
            "while kill -0 \"$PID\" 2>/dev/null; do sleep 0.2; done\n"
            "[ -d \"$NEW\" ] || exit 1\n"
-           "rm -rf \"$APP.old\"\n"
-           "if mv \"$APP\" \"$APP.old\" && mv \"$NEW\" \"$APP\"; then\n"
-           "  rm -rf \"$APP.old\"\n"
+           "rm -rf \"$OLD\"\n"
+           "if mv \"$APP\" \"$OLD\" && mv \"$NEW\" \"$APP\"; then\n"
+           "  rm -rf \"$OLD\"\n"
            "else\n"
-           "  [ -d \"$APP\" ] || mv \"$APP.old\" \"$APP\"\n"
+           "  [ -d \"$APP\" ] || mv \"$OLD\" \"$APP\"\n"
            "fi\n"
            "open \"$APP\"\n"
            "rm -f \"$0\"\n";

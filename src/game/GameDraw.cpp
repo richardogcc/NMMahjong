@@ -48,6 +48,9 @@ GameAction Game::draw(Ctx& ctx) {
   } else if (state_ == State::Stuck && stateTime_ > 0.5f) {
     const GameAction a = drawStuck(ctx);
     if (a != GameAction::None) action = a;
+  } else if (state_ == State::Paused) {
+    const GameAction a = drawPaused(ctx);
+    if (a != GameAction::None) action = a;
   }
   return action;
 }
@@ -112,7 +115,7 @@ GameAction Game::drawHud(Ctx& ctx) {
 
   const bool playing = state_ == State::Playing;
   if (ui::button(ctx, {20.0f, 14.0f, 128.0f, 48.0f}, tr(Str::Menu))) action = GameAction::Menu;
-  ui::text(ctx.title, TextFormat("%d · %s", level_ + 1, levelName(level_)), 172.0f, 19.0f, 38.0f, ui::kText);
+  ui::text(ctx.title, title(), 172.0f, 19.0f, 38.0f, ui::kText);
 
   const int seconds = static_cast<int>(elapsed_);
   stat(ctx, tr(Str::Pairs), TextFormat("%d", board_.remaining() / 2), 560.0f);
@@ -135,7 +138,8 @@ GameAction Game::drawHud(Ctx& ctx) {
 
 GameAction Game::drawWon(Ctx& ctx) {
   GameAction action = GameAction::None;
-  const bool last = level_ + 1 >= static_cast<int>(allLayouts().size());
+  // En modo aleatorio siempre hay «siguiente»: otro tablero nuevo.
+  const bool last = !random_ && level_ + 1 >= static_cast<int>(allLayouts().size());
   dim();
   particles_.draw();  // el confeti queda por encima del velo
   ui::panel({470.0f, 200.0f, 660.0f, 470.0f}, 0.9f);
@@ -176,6 +180,24 @@ GameAction Game::drawStuck(Ctx& ctx) {
   if (ui::button(ctx, rowButton(2, 4, y), tr(Str::Restart))) action = GameAction::Restart;
   if (ui::button(ctx, rowButton(3, 4, y), tr(Str::Menu))) action = GameAction::Menu;
   return action;
+}
+
+GameAction Game::drawPaused(Ctx& ctx) {
+  GameAction action = GameAction::None;
+  // Velo casi opaco: con el reloj parado no se puede estudiar el tablero.
+  DrawRectangle(-3000, 78, 9000, 9000, Fade({4, 6, 14, 255}, 0.93f));
+  ui::panel({470.0f, 290.0f, 660.0f, 290.0f}, 0.9f);
+  ui::textCentered(ctx.title, tr(Str::Paused), kViewW * 0.5f, 322.0f, 60.0f, ui::kText);
+  ui::textCentered(ctx.ui, title(), kViewW * 0.5f, 404.0f, 24.0f, ui::kMuted);
+  const float y = 472.0f;
+  if (ui::button(ctx, rowButton(0, 3, y), tr(Str::Resume))) togglePause();
+  if (ui::button(ctx, rowButton(1, 3, y), tr(Str::Restart))) action = GameAction::Restart;
+  if (ui::button(ctx, rowButton(2, 3, y), tr(Str::Menu))) action = GameAction::Menu;
+  return action;
+}
+
+const char* Game::title() const {
+  return random_ ? tr(Str::Random) : TextFormat("%d · %s", level_ + 1, levelName(level_));
 }
 
 }  // namespace nm

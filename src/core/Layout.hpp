@@ -1,6 +1,7 @@
 // NM Mahjong — © 2026 Richardo G. Cibea M. Todos los derechos reservados.
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -31,5 +32,9 @@ struct Layout {
 };
 
 const std::vector<Layout>& allLayouts();
+
+// Tablero inventado a partir de una semilla: simétrico, con capas apoyadas
+// unas en otras, un número par de fichas y como mucho 144.
+Layout randomLayout(std::uint32_t seed);
 
 }  // namespace nm

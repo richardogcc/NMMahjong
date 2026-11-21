@@ -21,12 +21,17 @@ class Game {
   // Dibuja la partida y atiende los botones del marcador.
   GameAction draw(Ctx& ctx);
 
-  int level() const { return level_; }
+  // -1 en el modo aleatorio.
+  int level() const { return random_ ? -1 : level_; }
+  // Qué ambiente (fondo y música) acompaña a esta partida.
+  int themeIndex() const { return themeIndex_; }
+  // Pausa o reanuda; no hace nada si la partida ya ha terminado.
+  void togglePause();
   // Juega sola una pareja válida (para las capturas de pantalla).
   bool autoMove(Ctx& ctx);
 
  private:
-  enum class State { Playing, Won, Stuck };
+  enum class State { Playing, Paused, Won, Stuck };
 
   struct TileView {
     float delay = 0.0f;   // cuándo empieza a caer en la animación de entrada
@@ -67,6 +72,8 @@ class Game {
   GameAction drawHud(Ctx& ctx);
   GameAction drawWon(Ctx& ctx);
   GameAction drawStuck(Ctx& ctx);
+  GameAction drawPaused(Ctx& ctx);
+  const char* title() const;
 
   Board board_;
   std::vector<TileView> views_;
@@ -76,6 +83,9 @@ class Game {
   Particles particles_;
 
   int level_ = 0;
+  bool random_ = false;      // tablero inventado en lugar de un nivel fijo
+  int themeIndex_ = 0;
+  Layout randomLayout_;
   State state_ = State::Playing;
   bool deadEnd_ = false;  // ni barajando queda salida
   float stateTime_ = 0.0f;

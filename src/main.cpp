@@ -147,7 +147,7 @@ int main() {
 
     BeginDrawing();
     ClearBackground(BLACK);
-    background.draw(scene == Scene::Menu ? menuTheme() : levelTheme(game.level()), ctx.time, ctx.dt);
+    background.draw(scene == Scene::Menu ? menuTheme() : levelTheme(game.themeIndex()), ctx.time, ctx.dt);
     BeginMode2D(camera);
     if (scene == Scene::Menu) {
       const MenuResult result = menu.draw(ctx);
@@ -157,8 +157,8 @@ int main() {
       const GameAction action = game.draw(ctx);
       if (action == GameAction::Menu) go(Scene::Menu, 0);
       if (action == GameAction::Restart) go(Scene::Play, game.level());
-      if (action == GameAction::Next) go(Scene::Play, game.level() + 1);
-      if (IsKeyPressed(KEY_ESCAPE)) go(Scene::Menu, 0);
+      if (action == GameAction::Next) go(Scene::Play, game.level() < 0 ? -1 : game.level() + 1);
+      if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_P)) game.togglePause();
     }
     EndMode2D();
     if (fade > 0.0f) DrawRectangle(0, 0, static_cast<int>(sw) + 1, static_cast<int>(sh) + 1, Fade(BLACK, fade));
@@ -174,6 +174,13 @@ int main() {
         saveFrame(capture.dir + "/game.png");
         capture.stage = capture.frames > 0 ? 10 : 2;
         capture.timer = 0.0f;
+        if (std::getenv("NM_CAPTURE_PAUSE")) {
+          game.togglePause();
+          capture.stage = 20;
+        }
+      } else if (capture.stage == 20 && capture.timer > 0.4f) {
+        saveFrame(capture.dir + "/pause.png");
+        quit = true;
       } else if (capture.stage == 10 && capture.timer > 0.1f) {
         capture.timer = 0.0f;
         saveFrame(capture.dir + TextFormat("/f%03d.png", capture.framesSaved));

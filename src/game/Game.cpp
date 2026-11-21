@@ -22,8 +22,19 @@ std::uint32_t randomSeed() { return static_cast<std::uint32_t>(GetRandomValue(1,
 
 void Game::start(int levelIndex, Ctx& ctx) {
   const auto& layouts = allLayouts();
-  level_ = std::clamp(levelIndex, 0, static_cast<int>(layouts.size()) - 1);
-  board_.generate(layouts[level_], randomSeed());
+  random_ = levelIndex < 0;
+  if (random_) {
+    // Tablero nuevo cada vez; se repite si alguna forma rara no admite reparto.
+    do {
+      randomLayout_ = randomLayout(randomSeed());
+    } while (!board_.generate(randomLayout_, randomSeed()));
+    level_ = 0;
+    themeIndex_ = GetRandomValue(0, static_cast<int>(layouts.size()) - 1);
+  } else {
+    level_ = std::clamp(levelIndex, 0, static_cast<int>(layouts.size()) - 1);
+    themeIndex_ = level_;
+    board_.generate(layouts[level_], randomSeed());
+  }
 
   views_.assign(board_.tiles().size(), TileView{});
   ghosts_.clear();
@@ -39,7 +50,7 @@ void Game::start(int levelIndex, Ctx& ctx) {
   layoutBoard();
   dealAnimation(0.15f);
   moves_ = board_.availableMoves();
-  ctx.audio->setMood(levelTheme(level_).mood);
+  ctx.audio->setMood(themeIndex_ + 1);  // la pieza 0 es la del menú
 }
 
 void Game::layoutBoard() {
@@ -112,7 +123,7 @@ void Game::update(Ctx& ctx) {
   for (Ghost& g : ghosts_) {
     g.t += dt / kGhostTime;
     if (g.t >= 1.0f && g.burst) {
-      particles_.burst(g.to, levelTheme(level_).mote, 34, 420.0f);
+      particles_.burst(g.to, levelTheme(themeIndex_).mote, 34, 420.0f);
       particles_.burst(g.to, ui::kGold, 14, 260.0f);
     }
   }
@@ -252,8 +263,18 @@ void Game::win(Ctx& ctx) {
   if (shufflesUsed_ <= 1 && hintsUsed_ <= 5) stars_ = 2;
   if (shufflesUsed_ == 0 && hintsUsed_ <= 1) stars_ = 3;
   score_ += std::max(0, 3000 - static_cast<int>(elapsed_) * 4);
-  ctx.save->record(allLayouts()[level_].id, stars_, static_cast<int>(elapsed_));
+  if (!random_) ctx.save->record(allLayouts()[level_].id, stars_, static_cast<int>(elapsed_));
   ctx.audio->play(Sfx::Win);
+}
+
+void Game::togglePause() {
+  if (state_ == State::Playing) {
+    state_ = State::Paused;
+    selected_ = hintA_ = hintB_ = -1;
+  } else if (state_ == State::Paused) {
+    state_ = State::Playing;
+  }
+  stateTime_ = 0.0f;
 }
 
 bool Game::autoMove(Ctx& ctx) {
