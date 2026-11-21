@@ -1,0 +1,2 @@
+// Icono del ejecutable y de la ventana (GLFW busca el recurso GLFW_ICON).
+GLFW_ICON ICON "assets/icon/icon.ico"

@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/icon/icon.png" width="160" alt="Logo de NM Mahjong"></p>
+
 # NM Mahjong
 
 Un solitario de mahjong para relajarse: empareja fichas, despeja el tablero y

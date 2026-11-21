@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.24)
 project(NMMahjong VERSION 0.1.0 LANGUAGES C CXX)
+if(WIN32)
+  enable_language(RC)
+endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -60,7 +63,10 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
 endif()
 
 if(APPLE)
+  target_sources(NMMahjong PRIVATE assets/icon/icon.icns)
+  set_source_files_properties(assets/icon/icon.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
   set_target_properties(NMMahjong PROPERTIES
+    MACOSX_BUNDLE_ICON_FILE "icon.icns"
     MACOSX_BUNDLE_BUNDLE_NAME "NM Mahjong"
     MACOSX_BUNDLE_GUI_IDENTIFIER "com.richardogcm.nmmahjong"
     MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
@@ -70,6 +76,12 @@ if(APPLE)
   set(NM_ASSET_DEST "$<TARGET_BUNDLE_CONTENT_DIR:NMMahjong>/Resources/assets")
 else()
   set(NM_ASSET_DEST "$<TARGET_FILE_DIR:NMMahjong>/assets")
+endif()
+
+if(WIN32)
+  target_sources(NMMahjong PRIVATE src/platform/windows.rc)
+  set_source_files_properties(src/platform/windows.rc PROPERTIES
+    COMPILE_FLAGS "-I\"${CMAKE_SOURCE_DIR}\"")
 endif()
 
 if(MINGW)
