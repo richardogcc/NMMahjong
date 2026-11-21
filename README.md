@@ -14,10 +14,12 @@ avanza por ocho niveles con su propio paisaje y su propia música.
   anterior.
 - **Siempre tiene solución.** Las fichas se reparten de forma que el tablero
   pueda despejarse entero.
-- **Paisajes reales animados**: cada nivel tiene su fotografía —lagos, dunas,
-  playas, auroras, templos— con movimiento lento, bruma y destellos en el agua.
-- **Música ambiental** que nunca se repite igual y cambia de carácter según el
-  nivel.
+- **Paisajes de China animados**: cada nivel tiene su fotografía —la Gran
+  Muralla, los jardines de Suzhou, la Ciudad Prohibida, las terrazas de
+  arroz— con la cámara en movimiento, niebla que cruza, agua que ondula y
+  pétalos que caen.
+- **Música ambiental china**: guzheng, flauta dizi y gong, distinta en cada
+  partida y con otro carácter según el nivel.
 - **Efectos**: destellos al emparejar, combos si encadenas parejas con
   rapidez y confeti al terminar.
 - **Ayudas** cuando las necesites: pista, deshacer y barajar.
@@ -82,10 +84,11 @@ way through eight levels, each with its own scenery and music.
 - **Eight levels** with different shapes, from the small *Garden* to the 144
   tiles of *Turtle* and *Temple*. Clearing a level unlocks the next one.
 - **Always solvable.** Tiles are dealt so the whole board can be cleared.
-- **Real, animated scenery**: every level has its own photograph (lakes,
-  dunes, beaches, auroras, temples) with slow motion, mist and water sparkles.
-- **Ambient music** that never plays the same way twice and changes mood with
-  the level.
+- **Animated Chinese scenery**: every level has its own photograph (the Great
+  Wall, the gardens of Suzhou, the Forbidden City, rice terraces) with a
+  moving camera, drifting mist, rippling water and falling petals.
+- **Chinese ambient music**: guzheng, dizi flute and gong, different every
+  time and changing mood with the level.
 - **Effects**: sparkles on every match, combos when you chain pairs quickly
   and confetti when you finish.
 - **Help** when you need it: hint, undo and shuffle.
