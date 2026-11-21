@@ -119,6 +119,11 @@ std::string Updater::pageUrl() const {
                                        : shared_->info.pageUrl;
 }
 
+std::string Updater::minVersion() const {
+  std::lock_guard lock(shared_->mutex);
+  return shared_->info.minVersion;
+}
+
 void Updater::check() {
   State expected = State::Idle;
   if (!shared_->state.compare_exchange_strong(expected, State::Checking)) return;

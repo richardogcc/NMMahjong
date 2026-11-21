@@ -1,6 +1,8 @@
 // NM Mahjong — © 2026 Richardo G. Cibea M. Todos los derechos reservados.
 #pragma once
 
+#include <string>
+
 #include "audio/Audio.hpp"
 #include "core/Season.hpp"
 #include "game/Save.hpp"
@@ -31,6 +33,7 @@ struct Ctx {
   float dt = 0.0f;
   double time = 0.0;
   Nav nav;                   // teclado y mando
+  std::string mustUpdate;    // versión a la que hay que actualizar para seguir jugando; vacía si no hace falta
   bool langChanged = false;  // el menú lo activa al cambiar de idioma
   bool tilesChanged = false; // o el juego de fichas
 };

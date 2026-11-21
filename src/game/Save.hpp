@@ -31,6 +31,8 @@ struct SaveData {
   int difficulty = 0;         // 0 fácil, 1 normal, 2 difícil
   int playStyle = 0;          // 0 normal, 1 contrarreloj, 2 zen
   bool tutorialDone = false;
+  // Versión mínima exigida que se vio por última vez: el bloqueo se mantiene sin conexión.
+  std::string requiredVersion;
   bool largeText = false;     // textos pequeños algo más grandes
   bool reduceFx = false;      // sin destellos, confeti ni temblores
   bool seasonal = true;       // el menú y las fichas cambian con la época del año

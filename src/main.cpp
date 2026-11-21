@@ -7,6 +7,7 @@
 #include <string>
 
 #include "core/Layout.hpp"
+#include "core/Release.hpp"
 #include "game/Ctx.hpp"
 #include "game/Game.hpp"
 #include "game/Menu.hpp"
@@ -60,6 +61,7 @@ void saveFrame(const std::string& path) {
 //   NM_CAPTURE_SUSPEND tras unas jugadas guarda la partida y cierra
 //   NM_CAPTURE_PANEL   1 opciones, 2 estadísticas, 3 logros, 4 tutorial (NM_CAPTURE_TAB: pestaña de opciones)
 //   NM_CAPTURE_SOLUTION  a media partida pide ver la solución y la captura
+//   NM_REQUIRED        simula que se exige esa versión (pantalla de actualización obligatoria)
 //   NM_SEASON          fuerza la temporada (0 ninguna, 1-4 estaciones, 5 Año Nuevo chino)
 //   NM_LARGE_TEXT, NM_REDUCE_FX  activan esas opciones
 //   NM_CAPTURE_PAUSE   captura también la pantalla de pausa (2: con las opciones abiertas)
@@ -112,6 +114,7 @@ int main() {
     save.playStyle = std::clamp(envInt("NM_STYLE", 0), 0, 2);
     save.difficulty = std::clamp(envInt("NM_DIFFICULTY", 0), 0, 2);
     save.largeText = envInt("NM_LARGE_TEXT", 0) != 0;
+    if (const char* required = std::getenv("NM_REQUIRED")) save.requiredVersion = required;
     save.reduceFx = envInt("NM_REDUCE_FX", 0) != 0;
     save.store();  // deja anotado que no se escribe en disco
   }
@@ -226,6 +229,18 @@ int main() {
       nextRequest = request;
       switching = true;
     };
+
+    // Actualización obligatoria: la última versión publicada dice cuál es la mínima
+    // admitida. Se recuerda, para que no se esquive sin conexión, y solo la cambia
+    // otra versión que traiga su propia marca (una más baja levanta la exigencia).
+    if (const Updater::State us = updater.state(); us == Updater::State::Available || us == Updater::State::Manual) {
+      const std::string required = updater.minVersion();
+      if (!required.empty() && required != save.requiredVersion) {
+        save.requiredVersion = required;
+        save.store();
+      }
+    }
+    ctx.mustUpdate = isNewerVersion(save.requiredVersion, NM_VERSION) ? save.requiredVersion : "";
 
     audio.update(ctx.dt);
     if (scene == Scene::Play) {

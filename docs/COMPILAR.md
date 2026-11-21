@@ -126,6 +126,28 @@ capturas en `dist/linux-test/`.
 Antes de publicar: sube la versión en `CMakeLists.txt`, escribe las notas en
 `docs/releases/v<versión>.md` y deja todos los cambios confirmados y subidos.
 
+### Forzar una actualización
+
+Para que las versiones antiguas dejen de poder jugarse hasta actualizarse,
+añade a las notas de la versión (`docs/releases/v<versión>.md`) esta línea,
+que no se ve en la página:
+
+```html
+<!-- nm-min-version: 0.7.0 -->
+```
+
+Toda copia anterior a esa versión mostrará «Actualización necesaria» en lugar
+del menú, con el botón para instalarla (o para abrir la página de descargas
+si no puede hacerlo sola). Conviene saber que:
+
+- La exigencia se recuerda en el guardado, así que sigue en pie sin conexión
+  y aunque versiones posteriores no repitan la línea.
+- Para retirarla, publica una versión con una marca más baja, por ejemplo
+  `<!-- nm-min-version: 0.0.0 -->`.
+- Solo alcanza a las copias que lleven el mecanismo (0.6.2 en adelante) y que
+  hayan podido consultar GitHub al menos una vez desde que se publicó.
+- Una partida en curso no se interrumpe: el aviso sale al volver al menú.
+
 El juego busca versiones nuevas en las *releases* del repositorio indicado en
 `NM_UPDATE_REPO` (en `CMakeLists.txt`). Los nombres de los paquetes que genera
 `scripts/package.sh` son los que el actualizador espera; no los cambies.

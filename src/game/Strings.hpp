@@ -67,6 +67,8 @@ enum class Str {
   // Récords, accesibilidad y solución
   NewRecord, OptLargeText, OptReduceFx, OptSeasonal, TilesColorBlind, TabDisplay,
   TabGame, TabAccess, ShowSolution, Solution, SolutionBody,
+  // Actualización obligatoria
+  UpdateRequired, UpdateRequiredBody,
   Count
 };
 

@@ -198,6 +198,13 @@ void testReleaseParsing() {
   CHECK(nm::parseRelease(json, "me/game", "-Windows-x64.zip", info) && info.sha256 == std::string(64, 'b'),
         "debe encontrar el paquete de Windows con su huella");
   CHECK(!nm::parseRelease(json, "otro/repo", "-macOS-arm64.dmg", info), "no acepta descargas de otro repositorio");
+  CHECK(nm::parseRelease(json, "me/game", "-macOS-arm64.dmg", info) && info.minVersion.empty(), "sin marca no se exige versión");
+  std::string forced = json;
+  forced.insert(forced.find("\"tag_name\""), R"("body":"Notas.\r\n\u003c!-- nm-min-version: 0.1.5 --\u003e",)");
+  CHECK(nm::parseRelease(forced, "me/game", "-macOS-arm64.dmg", info) && info.minVersion == "0.1.5",
+        "versión mínima leída: %s", info.minVersion.c_str());
+  forced.replace(forced.find("0.1.5"), 5, "x.y.z");
+  CHECK(nm::parseRelease(forced, "me/game", "-macOS-arm64.dmg", info) && info.minVersion.empty(), "una marca mal escrita se ignora");
   CHECK(!nm::parseRelease(json, "me/game", "-Linux.tar.gz", info), "sin paquete para la plataforma no hay versión");
   CHECK(!nm::parseRelease("{\"message\":\"Not Found\"}", "me/game", ".dmg", info), "respuesta de error");
   const std::string evil =

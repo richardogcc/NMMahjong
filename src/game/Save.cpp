@@ -73,6 +73,10 @@ void SaveData::load() {
         row >> rec.bestScore;  // no está en los guardados antiguos
         levels[id] = rec;
       }
+    } else if (key == "requiredVersion") {
+      std::string value;
+      if (row >> value && value.size() <= 16 && value.find_first_not_of("0123456789.") == std::string::npos)
+        requiredVersion = value;
     } else if (key == "achievement") {
       std::string id;
       if (row >> id && id.size() <= 32) achievements.insert(id);
@@ -116,6 +120,7 @@ void SaveData::store() const {
       << "\nrandomWon " << randomWon << "\n";
   out << "dailyDate " << dailyDate << "\ndailyStreak " << dailyStreak << "\nbestDailyStreak "
       << bestDailyStreak << "\n";
+  if (!requiredVersion.empty()) out << "requiredVersion " << requiredVersion << "\n";
   for (const auto& [id, rec] : levels)
     out << "level " << id << " " << rec.stars << " " << rec.bestSeconds << " " << rec.bestScore << "\n";
   for (const std::string& id : achievements) out << "achievement " << id << "\n";

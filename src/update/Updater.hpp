@@ -28,6 +28,8 @@ class Updater {
   State state() const;
   std::string version() const;  // versión nueva, cuando la hay
   std::string pageUrl() const;  // página de descargas
+  // Versión mínima que exige la última publicada; vacía si sus notas no dicen nada.
+  std::string minVersion() const;
 
   // Descarga y prepara la versión nueva (solo desde Available).
   void install();

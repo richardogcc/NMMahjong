@@ -140,6 +140,18 @@ bool parseRelease(const std::string& json, std::string_view repo, std::string_vi
   if (const auto page = stringValue(json, "html_url", 0); page && safeUrl(*page, base))
     out.pageUrl = *page;
 
+  // Versión mínima exigida, escrita en las notas de la versión.
+  constexpr std::string_view marker = "nm-min-version:";
+  if (const std::size_t at = json.find(marker); at != std::string::npos) {
+    std::size_t i = at + marker.size();
+    while (i < json.size() && json[i] == ' ') ++i;
+    std::size_t end = i;
+    while (end < json.size() && end - i < 16 && (json[end] == '.' || (json[end] >= '0' && json[end] <= '9'))) ++end;
+    std::array<int, 3> minimum{};
+    if (parseVersion(std::string_view(json).substr(i, end - i), minimum))
+      out.minVersion = std::to_string(minimum[0]) + "." + std::to_string(minimum[1]) + "." + std::to_string(minimum[2]);
+  }
+
   // Cada paquete publicado trae su huella («digest») antes de su dirección.
   std::size_t from = 0, previousEnd = 0;
   for (;;) {

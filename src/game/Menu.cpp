@@ -101,6 +101,41 @@ void drawUpdate(Ctx& ctx) {
   }
 }
 
+// Actualización obligatoria: tapa el menú hasta que se instale la versión nueva.
+bool drawForcedUpdate(Ctx& ctx) {
+  using State = Updater::State;
+  const State state = ctx.updater->state();
+  DrawRectangle(-3000, -3000, 9000, 9000, Fade({4, 6, 14, 255}, 0.86f));
+  const Rectangle box = {400.0f, 250.0f, 800.0f, 400.0f};
+  ui::panel(box, 0.96f);
+  const float cx = kViewW * 0.5f;
+  ui::textCentered(ctx.title, tr(Str::UpdateRequired), cx, box.y + 34.0f, 50.0f, ui::kGold);
+  // Se instala la última publicada, que puede ser posterior a la mínima exigida.
+  const std::string latest = ctx.updater->version();
+  const std::string& version = latest.empty() ? ctx.mustUpdate : latest;
+  ui::textWrapped(ctx.ui, TextFormat(tr(Str::UpdateRequiredBody), version.c_str()), box.x + 70.0f, box.y + 124.0f,
+                  box.width - 140.0f, 25.0f, ui::kText, true);
+
+  const float y = box.y + box.height - 96.0f;
+  const Rectangle left = {cx - 270.0f, y, 260.0f, 56.0f}, right = {cx + 10.0f, y, 260.0f, 56.0f};
+  if (state == State::Downloading || state == State::Ready) {
+    ui::textCentered(ctx.ui, tr(state == State::Ready ? Str::UpdateRestarting : Str::UpdateDownloading), cx,
+                     y - 62.0f, 22.0f, ui::kMuted);
+    const float k = 0.5f + 0.5f * std::sin(static_cast<float>(ctx.time) * 3.0f);
+    DrawRectangleRounded({cx - 200.0f, y - 22.0f, 400.0f, 8.0f}, 1.0f, 6, Fade(WHITE, 0.15f));
+    DrawRectangleRounded({cx - 200.0f + k * 320.0f, y - 22.0f, 80.0f, 8.0f}, 1.0f, 6, ui::kGold);
+    return false;
+  }
+  if (state == State::Failed) ui::textCentered(ctx.ui, tr(Str::UpdateFailed), cx, y - 50.0f, 22.0f, {255, 130, 130, 255});
+  // Si no se puede instalar sola (o no hay conexión), se abre la página de descargas.
+  if (state == State::Available) {
+    if (ui::button(ctx, left, tr(Str::UpdateNow))) ctx.updater->install();
+  } else if (ui::button(ctx, left, tr(Str::UpdateOpenPage))) {
+    OpenURL(ctx.updater->pageUrl().c_str());
+  }
+  return ui::button(ctx, right, tr(Str::Quit));
+}
+
 }  // namespace
 
 bool Menu::drawLevelCard(const Ctx& ctx, int index, Rectangle card, bool unlocked, bool focused) const {
@@ -185,6 +220,10 @@ MenuResult Menu::draw(Ctx& ctx) {
     if (!save.tutorialDone) panel_ = Panel::Tutorial;  // la primera vez se explica el juego
   }
   drawTitle(ctx);
+  if (!ctx.mustUpdate.empty()) {
+    if (drawForcedUpdate(ctx)) result.kind = MenuResult::Kind::Quit;
+    return result;
+  }
   if (panel_ == Panel::None) drawUpdate(ctx);
 
   // Teclado y mando: las flechas recorren las tarjetas y Enter abre.

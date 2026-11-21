@@ -126,6 +126,8 @@ extern const char* const kStrEs[] = {
     /* ShowSolution */ "Ver solución",
     /* Solution */ "Solución",
     /* SolutionBody */ "Así se resolvía este reparto.",
+    /* UpdateRequired */ "Actualización necesaria",
+    /* UpdateRequiredBody */ "Para seguir jugando hay que instalar la versión %s. Tu progreso se conserva.",
 };
 static_assert(sizeof(kStrEs) / sizeof(kStrEs[0]) == static_cast<int>(Str::Count));
 
@@ -254,6 +256,8 @@ extern const char* const kStrEn[] = {
     /* ShowSolution */ "Show solution",
     /* Solution */ "Solution",
     /* SolutionBody */ "This is how the deal could be solved.",
+    /* UpdateRequired */ "Update required",
+    /* UpdateRequiredBody */ "To keep playing you need to install version %s. Your progress is kept.",
 };
 static_assert(sizeof(kStrEn) / sizeof(kStrEn[0]) == static_cast<int>(Str::Count));
 

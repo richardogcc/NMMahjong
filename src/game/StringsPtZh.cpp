@@ -126,6 +126,8 @@ extern const char* const kStrPt[] = {
     /* ShowSolution */ "Ver solução",
     /* Solution */ "Solução",
     /* SolutionBody */ "Era assim que esta distribuição se resolvia.",
+    /* UpdateRequired */ "Atualização necessária",
+    /* UpdateRequiredBody */ "Para continuar jogando é preciso instalar a versão %s. Seu progresso é mantido.",
 };
 static_assert(sizeof(kStrPt) / sizeof(kStrPt[0]) == static_cast<int>(Str::Count));
 
@@ -254,6 +256,8 @@ extern const char* const kStrZh[] = {
     /* ShowSolution */ "看解法",
     /* Solution */ "解法",
     /* SolutionBody */ "這副牌可以這樣解開。",
+    /* UpdateRequired */ "需要更新",
+    /* UpdateRequiredBody */ "必須安裝 %s 版才能繼續遊戲。你的進度會保留。",
 };
 static_assert(sizeof(kStrZh) / sizeof(kStrZh[0]) == static_cast<int>(Str::Count));
 
