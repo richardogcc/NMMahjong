@@ -53,6 +53,8 @@ struct Capture {
   int stage = 0;
   float timer = 0.0f;
   int movesDone = 0;
+  int frames = 0;      // NM_CAPTURE_FRAMES: fotogramas seguidos para montar un vídeo
+  int framesSaved = 0;
   bool active() const { return !dir.empty(); }
 };
 
@@ -77,6 +79,7 @@ int main() {
     save.persist = false;
   }
   if (const char* level = std::getenv("NM_CAPTURE_LEVEL")) capture.level = std::atoi(level);
+  if (const char* frames = std::getenv("NM_CAPTURE_FRAMES")) capture.frames = std::atoi(frames);
   if (const char* forced = std::getenv("NM_LANG")) setLang(forced[0] == 'e' && forced[1] == 'n' ? Lang::En : Lang::Es);
 
   Audio audio;
@@ -168,8 +171,12 @@ int main() {
         capture.timer = 0.0f;
       } else if (capture.stage == 1 && capture.timer > 4.0f) {
         saveFrame(capture.dir + "/game.png");
-        capture.stage = 2;
+        capture.stage = capture.frames > 0 ? 10 : 2;
         capture.timer = 0.0f;
+      } else if (capture.stage == 10 && capture.timer > 0.1f) {
+        capture.timer = 0.0f;
+        saveFrame(capture.dir + TextFormat("/f%03d.png", capture.framesSaved));
+        if (++capture.framesSaved >= capture.frames) quit = true;
       } else if (capture.stage == 2 && capture.timer > 0.34f) {
         capture.timer = 0.0f;
         if (capture.movesDone < 6) {

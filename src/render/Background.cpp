@@ -16,6 +16,7 @@ uniform vec3 uB;
 uniform vec3 uC;
 uniform int uMode;
 uniform int uPhoto;
+uniform float uFog;
 uniform vec2 uTexSize;
 uniform sampler2D texture0;
 
@@ -89,51 +90,70 @@ vec3 generated(vec2 uv, vec2 p, float t) {
   return col;
 }
 
-// Fotografía con movimiento lento de cámara y un efecto vivo según el tema.
+// Fotografía viva: la cámara se acerca y se desplaza, la niebla cruza en dos
+// capas, entran rayos de luz y cada tema añade su propio movimiento.
 vec3 photograph(vec2 uv, vec2 p, float t) {
   vec2 top = vec2(uv.x, 1.0 - uv.y);  // origen arriba a la izquierda, como la imagen
   float screen = uRes.x / uRes.y, image = uTexSize.x / uTexSize.y;
   vec2 fit = screen > image ? vec2(1.0, image / screen) : vec2(screen / image, 1.0);
-  float zoom = 1.09 + 0.05 * sin(t * 0.045);
-  vec2 pan = vec2(sin(t * 0.031), cos(t * 0.023)) * 0.016;
+  float zoom = 1.14 + 0.07 * sin(t * 0.11);
+  vec2 pan = vec2(sin(t * 0.083), cos(t * 0.061)) * 0.026;
   vec2 st = (top - 0.5) * fit / zoom + 0.5 + pan;
 
   float low = smoothstep(0.5, 1.0, top.y);  // mitad inferior: agua, arena, hierba
   if (uMode == 1) {
-    float wob = noise(vec2(top.x * 6.0, top.y * 30.0 - t * 0.5));
-    st += low * vec2(sin(top.y * 110.0 + t * 1.5 + wob * 6.0) * 0.0022, cos(top.x * 46.0 + t * 1.1) * 0.0012);
+    // Ondas que avanzan por el agua.
+    float wob = noise(vec2(top.x * 6.0, top.y * 30.0 - t * 0.7));
+    st += low * vec2(sin(top.y * 95.0 - t * 2.2 + wob * 6.0) * 0.0036, cos(top.x * 40.0 + t * 1.4) * 0.0018);
   } else if (uMode == 3) {
-    st.x += (noise(vec2(top.y * 9.0, t * 0.35)) - 0.5) * 0.0045 * low;  // el viento mece el suelo
+    // El viento mece la vegetación y la arena.
+    float gust = noise(vec2(top.x * 3.0 - t * 0.5, top.y * 7.0));
+    st.x += (gust - 0.5) * 0.007 * smoothstep(0.25, 1.0, top.y);
   }
   vec3 col = texture(texture0, st).rgb;
+  float lum = dot(col, vec3(0.3, 0.59, 0.11));
 
   if (uMode == 0) {
     // Aurora: el cielo respira con cortinas de luz que se desplazan.
     float sky = smoothstep(0.8, 0.15, top.y);
-    float veil = fbm(vec2(top.x * 3.0 + t * 0.05, top.y * 1.4 - t * 0.07));
-    float lum = dot(col, vec3(0.3, 0.59, 0.11));
-    col *= 1.0 + sky * (veil - 0.45) * 1.1 * smoothstep(0.08, 0.5, lum);
+    float veil = fbm(vec2(top.x * 3.0 + t * 0.08, top.y * 1.4 - t * 0.1));
+    col *= 1.0 + sky * (veil - 0.45) * 1.3 * smoothstep(0.08, 0.5, lum);
   } else if (uMode == 1) {
     // Destellos sueltos de sol sobre el agua.
     float grain = noise(vec2(top.x * 150.0 + t * 0.35, top.y * 330.0 - t * 0.9));
     float glint = pow(grain, 10.0) * (0.5 + 0.5 * sin(t * 2.2 + top.x * 37.0 + top.y * 91.0));
-    col += uC * glint * low * 0.9 * (0.3 + dot(col, vec3(0.33)));
-  } else {
-    // Bruma o nubes bajas que cruzan despacio.
-    float mist = fbm(vec2(p.x * 1.4 + t * 0.028, p.y * 3.2 - t * 0.006));
-    col = mix(col, uC, smoothstep(0.48, 0.9, mist) * 0.24);
+    col += uC * glint * low * 0.9 * (0.3 + lum);
+  } else if (uMode == 2) {
+    // Noche: las luces cálidas (farolillos, ventanas) titilan.
+    float warm = smoothstep(0.45, 0.9, lum) * smoothstep(0.0, 0.25, col.r - col.b);
+    col *= 1.0 + warm * 0.22 * sin(t * 3.1 + top.x * 23.0 + top.y * 17.0 + noise(top * 9.0 + t) * 4.0);
   }
+
+  // Rayos de luz que entran en diagonal (solo de día).
+  if (uMode == 1 || uMode == 3) {
+    float ang = top.x * 1.4 + top.y * 0.55;
+    float rays = pow(0.5 + 0.5 * sin(ang * 9.0 + t * 0.3 + fbm(vec2(ang * 3.0, t * 0.12)) * 4.0), 5.0);
+    col += uC * rays * smoothstep(0.95, 0.0, top.y) * 0.09;
+  }
+
+  // Niebla en dos capas que se cruzan a distinta velocidad.
+  float f1 = fbm(vec2(p.x * 1.2 + t * 0.05, p.y * 2.6 + 3.0));
+  float f2 = fbm(vec2(p.x * 2.3 - t * 0.08, p.y * 4.0 - t * 0.012));
+  float band = smoothstep(0.9, 0.15, abs(top.y - 0.6) * 2.1);
+  float fog = (smoothstep(0.45, 0.85, f1) * 0.6 + smoothstep(0.5, 0.9, f2) * 0.5) * uFog * (0.3 + 0.7 * band);
+  col = mix(col, uC, clamp(fog, 0.0, 0.62));
+
   if (uMode == 0 || uMode == 2) {
     vec2 g = gl_FragCoord.xy / (uRes.y / 46.0);
     vec2 cell = floor(g);
     float seed = hash(cell);
-    if (seed > 0.9 && top.y < 0.55) {
+    if (seed > 0.9 && top.y < 0.45 && lum < 0.35) {
       float d = length(fract(g) - (vec2(hash(cell + 3.1), hash(cell + 7.7)) * 0.7 + 0.15));
       col += vec3(1.0, 0.97, 0.9) * smoothstep(0.07, 0.0, d) * (0.5 + 0.5 * sin(t * (1.0 + seed * 3.0) + seed * 40.0)) * 0.7;
     }
   }
   // Las fichas tienen que leerse bien: algo menos de color y de luz.
-  col = mix(col, vec3(dot(col, vec3(0.3, 0.59, 0.11))), 0.14) * 0.74;
+  col = mix(col, vec3(dot(col, vec3(0.3, 0.59, 0.11))), 0.12) * 0.76;
   return col;
 }
 
@@ -152,6 +172,19 @@ void main() {
 
 float frand() { return static_cast<float>(GetRandomValue(0, 10000)) / 10000.0f; }
 
+// Elipse girada: sirve de pétalo o de hoja según sus proporciones.
+void drawPetal(Vector2 center, float rx, float ry, float degrees, Color color) {
+  const float c = std::cos(degrees * DEG2RAD), s = std::sin(degrees * DEG2RAD);
+  Vector2 points[10];
+  points[0] = center;
+  for (int i = 0; i <= 8; ++i) {
+    const float a = -i * 6.2831853f / 8.0f;  // sentido antihorario, como exige raylib
+    const float x = std::cos(a) * rx, y = std::sin(a) * ry;
+    points[i + 1] = {center.x + x * c - y * s, center.y + x * s + y * c};
+  }
+  DrawTriangleFan(points, 10, color);
+}
+
 }  // namespace
 
 void Background::init(const std::string& assetDir) {
@@ -168,12 +201,13 @@ void Background::init(const std::string& assetDir) {
   locMode_ = GetShaderLocation(shader_, "uMode");
   locPhoto_ = GetShaderLocation(shader_, "uPhoto");
   locTexSize_ = GetShaderLocation(shader_, "uTexSize");
-  for (int i = 0; i < 46; ++i)
+  locFog_ = GetShaderLocation(shader_, "uFog");
+  for (int i = 0; i < 84; ++i)
     motes_.push_back({{frand(), frand()},
-                      {0.012f + frand() * 0.03f, 0.01f + frand() * 0.028f},
-                      4.0f + frand() * 7.0f,
+                      {0.02f + frand() * 0.05f, 0.03f + frand() * 0.06f},
+                      5.0f + frand() * 8.0f,
                       frand() * 6.28f,
-                      20.0f + frand() * 70.0f});
+                      40.0f + frand() * 140.0f});
 }
 
 void Background::shutdown() {
@@ -217,23 +251,53 @@ void Background::draw(const Theme& theme, double time, float dt) {
   const float texSize[2] = {static_cast<float>(bound.width), static_cast<float>(bound.height)};
   SetShaderValue(shader_, locPhoto_, &hasPhoto, SHADER_UNIFORM_INT);
   SetShaderValue(shader_, locTexSize_, texSize, SHADER_UNIFORM_VEC2);
+  SetShaderValue(shader_, locFog_, &theme.fog, SHADER_UNIFORM_FLOAT);
   BeginShaderMode(shader_);
   DrawTexturePro(bound, {0.0f, 0.0f, texSize[0], texSize[1]}, {0.0f, 0.0f, w + 1.0f, h + 1.0f}, {0.0f, 0.0f},
                  0.0f, WHITE);
   EndShaderMode();
 
-  // Motas: pétalos, luciérnagas o copos, según el color del tema.
+  // Lo que flota por delante: pétalos, hojas, luciérnagas o polvo de luz.
   const float unit = h / 900.0f;
+  const bool glow = theme.motes == MoteKind::Fireflies || theme.motes == MoteKind::Dust;
+  if (glow) BeginBlendMode(BLEND_ADDITIVE);
   for (Mote& m : motes_) {
-    m.pos.x += (m.vel.x + 0.012f * std::sin(t * 0.6f + m.phase)) * dt;
-    m.pos.y += m.vel.y * dt;
-    if (m.pos.x > 1.05f) m.pos.x = -0.05f;
-    if (m.pos.y > 1.05f) m.pos.y = -0.05f;
-    const float flicker = 0.45f + 0.35f * std::sin(t * 1.3f + m.phase * 3.0f);
+    const float sway = std::sin(t * 0.9f + m.phase * 5.0f);
     const Vector2 at = {m.pos.x * w, m.pos.y * h};
-    DrawPoly(at, 5, m.size * unit, t * m.spin + m.phase * 57.0f, Fade(theme.mote, flicker * 0.6f));
-    DrawCircleV(at, m.size * unit * 0.45f, Fade(WHITE, flicker * 0.25f));
+    switch (theme.motes) {
+      case MoteKind::Petals:
+      case MoteKind::Leaves: {
+        const bool leaf = theme.motes == MoteKind::Leaves;
+        m.pos.x += (m.vel.x * (leaf ? 1.5f : 1.0f) + 0.035f * sway) * dt;
+        m.pos.y += m.vel.y * (leaf ? 1.4f : 1.0f) * dt;
+        const float tumble = std::fabs(std::cos(t * 1.7f + m.phase * 9.0f));  // gira sobre sí mismo
+        drawPetal(at, m.size * unit * (leaf ? 1.7f : 1.0f), m.size * unit * (0.2f + 0.45f * tumble) * (leaf ? 0.5f : 1.0f),
+                  t * m.spin * 0.4f + m.phase * 57.0f, Fade(theme.mote, 0.85f));
+        break;
+      }
+      case MoteKind::Fireflies: {
+        m.pos.x += 0.02f * std::sin(t * 0.5f + m.phase * 7.0f) * dt;
+        m.pos.y += 0.018f * std::cos(t * 0.4f + m.phase * 3.0f) * dt - m.vel.y * 0.08f * dt;
+        const float blink = std::pow(0.5f + 0.5f * std::sin(t * 1.6f + m.phase * 11.0f), 3.0f);
+        DrawCircleV(at, m.size * unit * 1.6f, Fade(theme.mote, blink * 0.16f));
+        DrawCircleV(at, m.size * unit * 0.3f, Fade(theme.mote, blink * 0.95f));
+        break;
+      }
+      case MoteKind::Dust: {
+        m.pos.x += (m.vel.x * 0.5f + 0.02f * sway) * dt;
+        m.pos.y -= m.vel.y * 0.25f * dt;  // sube despacio, como polvo al sol
+        const float flicker = 0.4f + 0.4f * std::sin(t * 1.3f + m.phase * 3.0f);
+        DrawCircleV(at, m.size * unit * 0.9f, Fade(theme.mote, flicker * 0.1f));
+        DrawCircleV(at, m.size * unit * 0.22f, Fade(theme.mote, flicker * 0.8f));
+        break;
+      }
+    }
+    if (m.pos.x > 1.05f) m.pos.x = -0.05f;
+    if (m.pos.x < -0.06f) m.pos.x = 1.04f;
+    if (m.pos.y > 1.05f) m.pos.y = -0.05f;
+    if (m.pos.y < -0.06f) m.pos.y = 1.04f;
   }
+  if (glow) EndBlendMode();
 }
 
 }  // namespace nm
